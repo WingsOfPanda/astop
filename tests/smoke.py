@@ -5,6 +5,7 @@ import curses
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import pty
@@ -72,6 +73,15 @@ def check_snapshot(devices):
         for key in ("npu_util", "mem_util"):
             if device[key] is not None:
                 assert 0 <= int(device[key].removesuffix("%")) <= 100, (key, device[key])
+        for key in ("pcie_gen", "pcie_width", "pcie_rx_mb_per_ms", "pcie_tx_mb_per_ms",
+                    "ecc_corrected", "ecc_uncorrected", "hccs_links"):
+            value = device[key]
+            assert value is None or type(value) is int and value >= 0, (key, value)
+        for key in ("hccs_rx_bytes_per_second", "hccs_tx_bytes_per_second"):
+            value = device[key]
+            assert value is None or (type(value) in (int, float) and math.isfinite(value)
+                                     and value >= 0), (key, value)
+        assert device["hccs_healthy"] is None or type(device["hccs_healthy"]) is bool
 
 
 def check_loop(stop_signal):
@@ -178,9 +188,26 @@ def check_visible_layout():
             (LOGS / f"screen-{label}.txt").write_text(screen)
             visible = set(re.findall(r"\bNPU\s+([0-7])\b", screen))
             if visible == set(expected):
-                return
+                return screen
             assert time.monotonic() < deadline, f"{label}: visible device IDs {sorted(visible)}"
             time.sleep(0.1)
+
+    def check_cards(screen, columns, details):
+        lines = screen.splitlines()
+        headers = [(row, match.start(), match[1]) for row, line in enumerate(lines)
+                   for match in re.finditer(r"\bNPU\s+([0-7])\b", line)]
+        assert len(headers) == 8, headers
+        for row, column, device_id in headers:
+            right = min((x for y, x, _ in headers if y == row and x > column), default=columns)
+            bottom = min((y for y, _, _ in headers if y > row), default=len(lines))
+            card = "\n".join(line[column:right] for line in lines[row:bottom])
+            assert "910B4-1" in card, (device_id, card)
+            for label in ("PCIe ", "ECC ", "HCCS "):
+                assert (label in card) == details, (device_id, label, card)
+            if details:
+                assert len(re.findall(r"\bRX ", card)) == 2, (device_id, card)
+                assert len(re.findall(r"\bTX ", card)) == 2, (device_id, card)
+                assert card.count("MB/ms") == 2, (device_id, card)
 
     try:
         tmux("new-session", "-d", "-s", "layout", "-x", "160", "-y", "50",
@@ -190,7 +217,8 @@ def check_visible_layout():
             if columns == 80:
                 tmux("resize-window", "-t", "layout", "-x", str(columns), "-y", str(rows))
             assert tmux("display-message", "-p", "-t", "layout", "#{pane_width}x#{pane_height}").strip() == f"{columns}x{rows}"
-            wait_visible("01234567", f"{columns}x{rows}")
+            screen = wait_visible("01234567", f"{columns}x{rows}")
+            check_cards(screen, columns, details=columns == 160)
         tmux("send-keys", "-t", "layout", "F2", "Down", "Down", "Down", "Down", "Right", "Enter", "F2")
         wait_visible("1234567", "device0-disabled")
         tmux("send-keys", "-t", "layout", "F12", "q")
@@ -227,7 +255,7 @@ def main():
             check_terminal(columns, rows)
             print(f"PASS terminal {columns}x{rows}, F2/F6/F9/F12, q", flush=True)
         check_visible_layout()
-        print("PASS all eight device IDs visible, resize, device selection saved and reloaded", flush=True)
+        print("PASS eight complete detail cards at 160x50, compact cards at 80x24, resize, saved device selection reload", flush=True)
     finally:
         assert real_settings() == before, "real user settings changed"
     print("PASS real user settings unchanged", flush=True)

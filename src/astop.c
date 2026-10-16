@@ -71,7 +71,7 @@ static const char helpstring[] = "Read-only Ascend NPU monitor\nAvailable option
                                  "older on the right\n"
                                  "  -C --no-color             : No colors\n"
                                  "  -f --freedom-unit         : Use Fahrenheit\n"
-                                 "  -i --npu-info             : Show dynamic NPU info bar\n"
+                                 "  -i --npu-info             : Show link/ECC details and device clocks\n"
                                  "  -X --all-info             : Also show static NPU specs and the secondary clock "
                                  "domains\n"
                                  "  -h --help                 : Print help and exit\n"

@@ -266,6 +266,32 @@ struct dcmi_pcie_info {
     DCMI_FREQ_VECTORCORE_CURRENT = 12
   };
 
+  enum dcmi_hccs_sub_cmd {
+    DCMI_HCCS_CMD_GET_STATUS = 0,
+    DCMI_HCCS_CMD_GET_LANE_INFO = 1,
+    DCMI_HCCS_CMD_GET_STATISTIC_INFO_U64 = 5
+  };
+
+  struct dcmi_hccs_statues {
+    unsigned int pcs_status;
+    unsigned int hdlc_status;
+    unsigned char reserve[4];
+  };
+
+  struct dcmi_hccs_lane_info {
+    unsigned int hccs_port_pcs_bitmap;
+    unsigned int pcs_lane_bitmap[DCMI_HCCS_MAX_PCS_NUM];
+    unsigned int reserve[16];
+  };
+
+  struct dcmi_hccs_statistic_info_u64 {
+    unsigned long long tx_cnt[DCMI_HCCS_MAX_PCS_NUM];
+    unsigned long long rx_cnt[DCMI_HCCS_MAX_PCS_NUM];
+    unsigned long long crc_err_cnt[DCMI_HCCS_MAX_PCS_NUM];
+    unsigned long long retry_cnt[DCMI_HCCS_MAX_PCS_NUM];
+    unsigned long long reserved[64];
+  };
+
   enum dcmi_lp_sub_cmd {
     DCMI_LP_SUB_CMD_AICORE_VOLTAGE_CURRENT = 0,
     DCMI_LP_SUB_CMD_HYBIRD_VOLTAGE_CURRENT,

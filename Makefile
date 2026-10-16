@@ -9,7 +9,7 @@ LDLIBS += $(shell pkg-config --libs ncursesw) -lm -lpthread -ldcmi
 SOURCES := $(wildcard src/*.c)
 OBJECTS := $(patsubst src/%.c,build/%.o,$(SOURCES))
 
-.PHONY: all clean install test smoke
+.PHONY: all clean install test test-hccs smoke
 all: build/astop
 
 build/astop: $(OBJECTS)
@@ -28,10 +28,12 @@ install: build/astop
 clean:
 	rm -rf build
 
-test: build/astop build/test_core build/test_ui_history build/test_ui_layout build/test_core_empty_dcmi.so
+test: build/astop build/test_core build/test_ui_history build/test_ui_layout build/test_core_empty_dcmi.so build/test_hccs build/test_ui_links
 	build/test_core
 	build/test_ui_history
 	build/test_ui_layout
+	build/test_hccs
+	build/test_ui_links
 	test "$$(LD_PRELOAD=$(CURDIR)/build/test_core_empty_dcmi.so build/astop -s)" = '[]'
 
 smoke: build/astop
@@ -46,7 +48,16 @@ build/test_ui_history: tests/test_ui_history.c build/interface_ring_buffer.o bui
 build/test_ui_layout: tests/test_ui_layout.c build/interface_layout_selection.o build/interface_options.o build/ini.o | build
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ -lm
 
+build/test_ui_links: tests/test_ui_links.c src/interface.c src/interface_layout_selection.c include/nvtop/extract_gpuinfo_common.h | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -o $@ $< src/interface_layout_selection.c $(shell pkg-config --libs ncursesw) -lm
+
 build/test_core_empty_dcmi.so: tests/test_core_empty_dcmi.c | build
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared -fPIC -o $@ $<
+
+test-hccs: build/test_hccs
+	build/test_hccs
+
+build/test_hccs: tests/test_hccs.c src/extract_gpuinfo_ascend.c include/ascend/dcmi_interface_api.h include/nvtop/extract_gpuinfo_common.h build/extract_gpuinfo.o build/get_process_info_linux.o build/time.o | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $< build/extract_gpuinfo.o build/get_process_info_linux.o build/time.o -lm -ldcmi
 
 -include $(OBJECTS:.o=.d)

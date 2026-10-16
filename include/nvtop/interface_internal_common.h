@@ -39,6 +39,7 @@
 // and a value, with no assumption about what it represents (a clock domain, a
 // cache size, a core count...). The capacity is independent of any source.
 #define MAX_EXTRA_INFO_ITEMS 16
+#define LINK_INFO_ROWS 4
 
 enum nvtop_option_window_state {
   nvtop_option_state_hidden,
@@ -66,6 +67,7 @@ struct device_window {
   WINDOW *fan_speed;
   WINDOW *temperature;
   WINDOW *power_info;
+  WINDOW *link_info[LINK_INFO_ROWS];
   // Generic grid of extra GPU information (clock domains and static specs); each
   // cell holds one "NAME value" field. Unused slots are NULL.
   WINDOW *extra_info[MAX_EXTRA_INFO_ITEMS];
@@ -129,6 +131,7 @@ struct nvtop_interface {
   WINDOW *shortcut_window;
   unsigned num_plots;
   unsigned extra_info_rows;            // Rows the current layout reserves for the extra GPU info bar
+  unsigned link_info_rows;
   unsigned char extra_info_option_sig; // Options the current extra info layout was built for
   bool layout_too_small;
   struct plot_window *plots;

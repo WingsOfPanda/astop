@@ -107,6 +107,8 @@ enum gpuinfo_dynamic_info_valid {
   gpuinfo_pcie_link_width_valid,
   gpuinfo_pcie_rx_valid,
   gpuinfo_pcie_tx_valid,
+  gpuinfo_pcie_rx_mb_per_ms_valid,
+  gpuinfo_pcie_tx_mb_per_ms_valid,
   gpuinfo_fan_speed_valid,
   gpuinfo_fan_rpm_valid,
   gpuinfo_gpu_temp_valid,
@@ -116,6 +118,10 @@ enum gpuinfo_dynamic_info_valid {
   gpuinfo_multi_instance_mode_valid,
   gpuinfo_ecc_corrected_valid,
   gpuinfo_ecc_uncorrected_valid,
+  gpuinfo_hccs_links_valid,
+  gpuinfo_hccs_healthy_valid,
+  gpuinfo_hccs_rx_bytes_per_second_valid,
+  gpuinfo_hccs_tx_bytes_per_second_valid,
   gpuinfo_extra_clocks_valid,
   gpuinfo_dynamic_info_count,
 };
@@ -148,10 +154,16 @@ struct gpuinfo_dynamic_info {
   unsigned long long used_memory;     // Allocated memory (bytes)
   unsigned long long ecc_corrected;   // Total correctable ECC errors
   unsigned long long ecc_uncorrected; // Total uncorrected ECC errors
+  unsigned int hccs_links;            // Configured HCCS ports
+  bool hccs_healthy;                  // PCS and HDLC status are healthy
+  double hccs_rx_bytes_per_second;    // Aggregate HCCS receive throughput
+  double hccs_tx_bytes_per_second;    // Aggregate HCCS transmit throughput
   unsigned int pcie_link_gen;         // PCIe link generation used
   unsigned int pcie_link_width;       // PCIe line width used
   unsigned int pcie_rx;               // PCIe throughput in KB/s
   unsigned int pcie_tx;               // PCIe throughput in KB/s
+  unsigned long long pcie_rx_mb_per_ms; // Native DCMI PCIe receive throughput in MB/ms
+  unsigned long long pcie_tx_mb_per_ms; // Native DCMI PCIe transmit throughput in MB/ms
   unsigned int fan_speed;             // Fan speed percentage
   unsigned int fan_rpm;               // Fan speed RPM
   unsigned int gpu_temp;              // GPU temperature °Celsius

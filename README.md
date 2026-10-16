@@ -11,7 +11,7 @@ charts and JSON output for scripts.
 *Rendered from a live terminal session with the process table hidden (`astop -P`).*
 
 - **Device overview:** aligned device cards with NPU utilization, HBM usage,
-  temperature, and power, plus available clock and PCIe details.
+  temperature, and power, plus PCIe, ECC, and HCCS link details when there is room.
 - **History charts:** teal NPU activity and soft blue HBM occupancy, with
   configurable metrics and selected devices.
 - **Process table:** sortable PIDs, users, device memory, host CPU and memory,
@@ -88,7 +88,7 @@ astop                  # interactive monitor; default refresh is one second
 astop -d 5             # refresh every half-second (units: tenths of a second)
 astop -P               # hide the process table
 astop -p               # hide history charts
-astop -i               # show additional available dynamic device details
+astop -i               # force link/ECC details and additional device clocks
 astop -i -X            # include static specs and secondary clock domains
 astop -C               # monochrome
 astop -s               # one JSON snapshot
@@ -111,6 +111,30 @@ All devices are selected on first launch. Settings live in
 `XDG_CONFIG_HOME` is unset, independently of nvtop. Use `-c /path/to/interface.ini`
 to load and save a different settings file.
 
+### PCIe, ECC, and HCCS
+
+Wide/tall terminals show link details on each device card automatically. Small
+terminals retain the compact overview; `-i` requests the detailed view explicitly.
+
+- **PCIe:** current negotiated generation and lane width, plus driver-reported
+  RX/TX bandwidth. The reference host currently negotiates Gen4 x16 even though
+  its reported maximum is Gen5 x16.
+- **ECC:** corrected / uncorrected totals from the memory types the driver can
+  query. Unsupported readings are `N/A`, not zero.
+- **HCCS:** configured interconnect link count, health, and aggregate RX/TX
+  throughput. The reference host reports seven links per NPU. These are Ascend
+  HCCS links; NVIDIA NVLink version labels do not apply.
+
+HCCS rates use differences between 64-bit traffic counters and monotonic elapsed
+time, with the documented 20 bytes per counter unit. Rates use KiB/s, MiB/s, or
+GiB/s; an initial or failed sample has no rate. This avoids a blocking bandwidth
+profiling call on each NPU. See the [Ascend HCCS counter documentation](https://www.hiascend.com/doc_center/source/zh/HDK/2610/A2/A2npu/npusmi_0075.html).
+
+PCIe bandwidth retains the driver's native integer **MB/ms** units ([DCMI API reference, section 2.103](https://www.hiascend.com/doc_center/source/zh/Atlas%20200I%20A2/24.1.0/re/api/Atlas%20A2%20%E6%99%BA%E8%83%BD%E8%BE%B9%E7%BC%98%E7%A1%AC%E4%BB%B6%2024.1.0%20DCMI%20API%E5%8F%82%E8%80%83.pdf#page=198)) and is sampled
+periodically (currently every five seconds). It does not offer NVML-like fine
+resolution. The existing PCIe load plots retain upstream binary scaling as an
+estimate; the driver's decimal-versus-binary bandwidth scale has not been verified.
+
 ## JSON snapshots
 
 `astop -s` writes a JSON array of devices, including processes unless `-P` is set.
@@ -125,6 +149,9 @@ astop -s -P | python3 -c 'import json, sys; print([(d["device_id"], d["npu_util"
 - Many measurements are strings: utilization such as `"50%"`, clocks such as
   `"1800MHz"`, and memory byte counts such as `"68719476736"`.
 - Unavailable metrics are `null`. A successful query with no devices returns `[]`.
+- PCIe/ECC/HCCS fields are numeric (or `null`), with `hccs_healthy` boolean (or
+  `null`). PCIe bandwidth keys end in `_mb_per_ms`; HCCS throughput keys end in
+  `_bytes_per_second` so scripts can keep the units explicit.
 - `astop -l` emits successive, formatted JSON arrays. It is neither JSON Lines
   nor one enclosing JSON document; consume it with a streaming JSON decoder.
 

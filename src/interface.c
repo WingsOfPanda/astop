@@ -54,7 +54,7 @@ static unsigned int sizeof_process_field[process_field_count] = {
 
 // Compact cards keep all eight devices visible on an 80-column terminal.
 static void alloc_device_window(unsigned start_row, unsigned start_col, unsigned cols,
-                                const nvtop_interface_option *options, unsigned extra_info_rows,
+                                const nvtop_interface_option *options, unsigned extra_info_rows, unsigned link_info_rows,
                                 struct device_window *dwin) {
   (void)options;
   memset(dwin, 0, sizeof(*dwin));
@@ -71,8 +71,10 @@ static void alloc_device_window(unsigned start_row, unsigned start_col, unsigned
     fprintf(stderr, "Error: terminal too small for device cards\n");
     exit(EXIT_FAILURE);
   }
+  for (unsigned i = 0; i < link_info_rows; ++i)
+    dwin->link_info[i] = newwin(1, cols, start_row + 3 + i, start_col);
   for (unsigned i = 0; i < min(extra_info_rows * EXTRA_INFO_PER_ROW, MAX_EXTRA_INFO_ITEMS); ++i)
-    dwin->extra_info[i] = newwin(1, cols / 2, start_row + 3 + i / EXTRA_INFO_PER_ROW,
+    dwin->extra_info[i] = newwin(1, cols / 2, start_row + 3 + link_info_rows + i / EXTRA_INFO_PER_ROW,
                                start_col + i % EXTRA_INFO_PER_ROW * (cols / 2));
 }
 
@@ -83,6 +85,9 @@ static void free_device_windows(struct device_window *dwin) {
   delwin(dwin->fan_speed);
   delwin(dwin->gpu_util_no_enc_and_dec);
   delwin(dwin->mem_util_no_enc_and_dec);
+  for (unsigned i = 0; i < LINK_INFO_ROWS; ++i)
+    if (dwin->link_info[i])
+      delwin(dwin->link_info[i]);
   for (unsigned i = 0; i < MAX_EXTRA_INFO_ITEMS; ++i)
     if (dwin->extra_info[i])
       delwin(dwin->extra_info[i]);
@@ -235,6 +240,13 @@ static void alloc_plot_window(unsigned devices_count, struct window_position *pl
 
 static unsigned device_length(void) { return 38; }
 
+static unsigned link_rows_for_layout(unsigned devices, unsigned rows, unsigned cols, unsigned extra_rows, bool force) {
+  unsigned per_row = device_cards_per_row(devices, device_length(), cols);
+  unsigned stacks = (devices + per_row - 1) / per_row;
+  unsigned process_rows = 1 + max(5, min(rows / 4, devices * 3));
+  return force || stacks * (3 + extra_rows + LINK_INFO_ROWS) + process_rows + 1 <= rows ? LINK_INFO_ROWS : 0;
+}
+
 static pid_t nvtop_pid;
 
 static void initialize_all_windows(struct nvtop_interface *dwin) {
@@ -242,9 +254,11 @@ static void initialize_all_windows(struct nvtop_interface *dwin) {
   getmaxyx(stdscr, rows, cols);
 
   unsigned int devices_count = dwin->monitored_dev_count;
+  dwin->link_info_rows = link_rows_for_layout(devices_count, rows, cols, dwin->extra_info_rows,
+                                            dwin->options.has_gpu_info_bar);
   unsigned cards_per_row = device_cards_per_row(devices_count, device_length(), cols);
   unsigned card_stacks = (devices_count + cards_per_row - 1) / cards_per_row;
-  dwin->layout_too_small = cols < 40 || rows < (int)(card_stacks * (3 + dwin->extra_info_rows) + 5);
+  dwin->layout_too_small = cols < 40 || rows < (int)(card_stacks * (3 + dwin->extra_info_rows + dwin->link_info_rows) + 5);
   if (dwin->layout_too_small) {
     dwin->num_plots = 0;
     dwin->setup_win.visible = false;
@@ -258,7 +272,7 @@ static void initialize_all_windows(struct nvtop_interface *dwin) {
   struct window_position plot_positions[MAX_CHARTS];
   struct window_position setup_position;
 
-  unsigned int device_rows = 3 + dwin->extra_info_rows;
+  unsigned int device_rows = 3 + dwin->extra_info_rows + dwin->link_info_rows;
   compute_sizes_from_layout(devices_count, device_rows, device_length(), rows - 1, cols,
                             dwin->options.gpu_specific_opts, dwin->options.process_fields_displayed, device_positions,
                             &dwin->num_plots, plot_positions, map_device_to_plot, &process_position, &setup_position,
@@ -268,7 +282,7 @@ static void initialize_all_windows(struct nvtop_interface *dwin) {
 
   for (unsigned int i = 0; i < devices_count; ++i) {
     alloc_device_window(device_positions[i].posY, device_positions[i].posX, device_positions[i].sizeX, &dwin->options,
-                        dwin->extra_info_rows, &dwin->devices_win[i]);
+                        dwin->extra_info_rows, dwin->link_info_rows, &dwin->devices_win[i]);
   }
 
   alloc_process_with_option(dwin, process_position.posX, process_position.posY, process_position.sizeX,
@@ -490,16 +504,6 @@ static unsigned collect_extra_info(const struct gpu_info *device, const nvtop_in
       add_extra_info_item(items, &count, max_items, "NPU", dynamic_info->gpu_clock_speed, "MHz");
     if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, mem_clock_speed))
       add_extra_info_item(items, &count, max_items, "HBM", dynamic_info->mem_clock_speed, "MHz");
-    if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, pcie_link_gen) &&
-        GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, pcie_link_width) && count < max_items) {
-      snprintf(items[count].name, sizeof(items[count].name), "PCIe");
-      snprintf(items[count++].value, sizeof(items[0].value), "G%ux%u", dynamic_info->pcie_link_gen,
-               dynamic_info->pcie_link_width);
-    }
-    if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, pcie_rx))
-      add_extra_info_item(items, &count, max_items, "RX", dynamic_info->pcie_rx, "KiB/s");
-    if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, pcie_tx))
-      add_extra_info_item(items, &count, max_items, "TX", dynamic_info->pcie_tx, "KiB/s");
     if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, encoder_rate))
       add_extra_info_item(items, &count, max_items, "ENC", dynamic_info->encoder_rate, "%");
     if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, decoder_rate))
@@ -561,7 +565,11 @@ static void update_extra_info_rows(struct list_head *devices, struct nvtop_inter
       rows_needed = max(rows_needed, interface->extra_info_rows);
   }
 
-  if (rows_needed == interface->extra_info_rows && !options_changed)
+  int rows, cols;
+  getmaxyx(stdscr, rows, cols);
+  unsigned link_rows = link_rows_for_layout(interface->monitored_dev_count, rows, cols, rows_needed,
+                                           interface->options.has_gpu_info_bar);
+  if (rows_needed == interface->extra_info_rows && link_rows == interface->link_info_rows && !options_changed)
     return;
 
   // Laying the windows out again closes the setup window, so a change made from
@@ -585,6 +593,58 @@ static struct gpu_info *get_device_by_id(struct list_head *devices, unsigned id)
       return device;
   }
   return NULL;
+}
+
+static void format_link_rate(char *text, size_t size, const char *direction, bool valid, double bytes_per_second) {
+  if (!valid) {
+    snprintf(text, size, "%s N/A", direction);
+    return;
+  }
+  const char *unit = "KiB/s";
+  double rate = bytes_per_second / 1024.;
+  if (rate >= 1024.) {
+    rate /= 1024.;
+    unit = "MiB/s";
+  }
+  if (rate >= 1024.) {
+    rate /= 1024.;
+    unit = "GiB/s";
+  }
+  snprintf(text, size, "%s %.3f%s", direction, rate, unit);
+}
+
+#define LINK_INFO_CELL_SIZE 64
+static void format_link_info(const struct gpuinfo_dynamic_info *info, char cells[LINK_INFO_ROWS * 2][LINK_INFO_CELL_SIZE]) {
+  snprintf(cells[0], LINK_INFO_CELL_SIZE, "PCIe N/A");
+  if (GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_link_gen) && GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_link_width))
+    snprintf(cells[0], LINK_INFO_CELL_SIZE, "PCIe GEN%u@%ux", info->pcie_link_gen, info->pcie_link_width);
+  char corrected[24] = "N/A", uncorrected[24] = "N/A";
+  if (GPUINFO_DYNAMIC_FIELD_VALID(info, ecc_corrected))
+    snprintf(corrected, sizeof(corrected), "%llu", info->ecc_corrected);
+  if (GPUINFO_DYNAMIC_FIELD_VALID(info, ecc_uncorrected))
+    snprintf(uncorrected, sizeof(uncorrected), "%llu", info->ecc_uncorrected);
+  snprintf(cells[1], LINK_INFO_CELL_SIZE, "ECC %s/%s", corrected, uncorrected);
+  snprintf(cells[2], LINK_INFO_CELL_SIZE, "RX N/A");
+  if (GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_rx_mb_per_ms))
+    snprintf(cells[2], LINK_INFO_CELL_SIZE, "RX %lluMB/ms", info->pcie_rx_mb_per_ms);
+  snprintf(cells[3], LINK_INFO_CELL_SIZE, "TX N/A");
+  if (GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_tx_mb_per_ms))
+    snprintf(cells[3], LINK_INFO_CELL_SIZE, "TX %lluMB/ms", info->pcie_tx_mb_per_ms);
+  snprintf(cells[4], LINK_INFO_CELL_SIZE, "HCCS N/A");
+  if (GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_links))
+    snprintf(cells[4], LINK_INFO_CELL_SIZE, "HCCS %ux", info->hccs_links);
+  snprintf(cells[5], LINK_INFO_CELL_SIZE, "%s", GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_healthy)
+           ? (info->hccs_healthy ? "OK" : "WARN") : "N/A");
+  format_link_rate(cells[6], LINK_INFO_CELL_SIZE, "RX", GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_rx_bytes_per_second),
+                   info->hccs_rx_bytes_per_second);
+  format_link_rate(cells[7], LINK_INFO_CELL_SIZE, "TX", GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_tx_bytes_per_second),
+                   info->hccs_tx_bytes_per_second);
+}
+
+static void fit_link_cell(char *text, unsigned columns) {
+  assert(columns >= 3);
+  if (strlen(text) > columns)
+    strcpy(text + columns - 3, "...");
 }
 
 static void draw_devices(struct list_head *devices, struct nvtop_interface *interface) {
@@ -637,6 +697,22 @@ static void draw_devices(struct list_head *devices, struct nvtop_interface *inte
     else
       mvwprintw(dev->fan_speed, 0, 0, "FAN N/A");
     wnoutrefresh(dev->fan_speed);
+    char link_cells[LINK_INFO_ROWS * 2][LINK_INFO_CELL_SIZE];
+    format_link_info(&device->dynamic_info, link_cells);
+    for (unsigned row = 0; row < interface->link_info_rows; ++row) {
+      WINDOW *win = dev->link_info[row];
+      unsigned half = getmaxx(win) / 2;
+      fit_link_cell(link_cells[row * 2], half - 1);
+      fit_link_cell(link_cells[row * 2 + 1], getmaxx(win) - half);
+      werase(win);
+      mvwaddnstr(win, 0, 0, link_cells[row * 2], half - 1);
+      if (row == 2 && GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, hccs_healthy) &&
+          !device->dynamic_info.hccs_healthy)
+        wcolor_set(win, warning_color, NULL);
+      mvwaddnstr(win, 0, half, link_cells[row * 2 + 1], getmaxx(win) - half);
+      wstandend(win);
+      wnoutrefresh(win);
+    }
     struct extra_info_item extra_items[MAX_EXTRA_INFO_ITEMS];
     unsigned extra_count = collect_extra_info(device, &interface->options, extra_items, MAX_EXTRA_INFO_ITEMS);
     for (unsigned i = 0; i < MAX_EXTRA_INFO_ITEMS && dev->extra_info[i]; ++i) {
@@ -1741,6 +1817,22 @@ static void print_json_string(const char *value) {
   putchar('"');
 }
 
+static void print_json_unsigned(const char *indent, const char *name, bool valid, unsigned long long value) {
+  printf("%s\"%s\": ", indent, name);
+  if (valid)
+    printf("%llu,\n", value);
+  else
+    printf("null,\n");
+}
+
+static void print_json_rate(const char *indent, const char *name, bool valid, double value) {
+  printf("%s\"%s\": ", indent, name);
+  if (valid)
+    printf("%.3f,\n", value);
+  else
+    printf("null,\n");
+}
+
 void print_snapshot(struct list_head *devices, bool use_fahrenheit_option, bool hide_processes_option) {
   struct gpu_info *device;
 
@@ -1780,6 +1872,21 @@ void print_snapshot(struct list_head *devices, bool use_fahrenheit_option, bool 
     print_json_string(GPUINFO_STATIC_FIELD_VALID(&device->static_info, memory_type)
                           ? device->static_info.memory_type : NULL);
     printf(",\n");
+
+    const struct gpuinfo_dynamic_info *info = &device->dynamic_info;
+    print_json_unsigned(indent_level_four, "pcie_gen", GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_link_gen), info->pcie_link_gen);
+    print_json_unsigned(indent_level_four, "pcie_width", GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_link_width), info->pcie_link_width);
+    print_json_unsigned(indent_level_four, "pcie_rx_mb_per_ms", GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_rx_mb_per_ms), info->pcie_rx_mb_per_ms);
+    print_json_unsigned(indent_level_four, "pcie_tx_mb_per_ms", GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_tx_mb_per_ms), info->pcie_tx_mb_per_ms);
+    print_json_unsigned(indent_level_four, "ecc_corrected", GPUINFO_DYNAMIC_FIELD_VALID(info, ecc_corrected), info->ecc_corrected);
+    print_json_unsigned(indent_level_four, "ecc_uncorrected", GPUINFO_DYNAMIC_FIELD_VALID(info, ecc_uncorrected), info->ecc_uncorrected);
+    print_json_unsigned(indent_level_four, "hccs_links", GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_links), info->hccs_links);
+    printf("%s\"hccs_healthy\": %s,\n", indent_level_four, GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_healthy)
+           ? (info->hccs_healthy ? "true" : "false") : "null");
+    print_json_rate(indent_level_four, "hccs_rx_bytes_per_second", GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_rx_bytes_per_second),
+                    info->hccs_rx_bytes_per_second);
+    print_json_rate(indent_level_four, "hccs_tx_bytes_per_second", GPUINFO_DYNAMIC_FIELD_VALID(info, hccs_tx_bytes_per_second),
+                    info->hccs_tx_bytes_per_second);
 
     // GPU Clock Speed
     if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, gpu_clock_speed))
