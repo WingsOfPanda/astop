@@ -1,98 +1,152 @@
 # astop — Ascend Top
 
-An Ascend-only terminal monitor derived from [nvtop](https://github.com/Syllo/nvtop).
-Validated on Ubuntu 24.04 on ARM64 with eight Ascend 910B4-1 devices, 64 GiB
-HBM per device, and the Ascend 26.1.1 driver. Other models and driver versions
-have not been validated.
+**A read-only terminal monitor for Huawei Ascend NPUs, built in C with ncurses.**
 
-Run `astop` for live device summaries, NPU and memory history charts, and a
-sortable process table. All devices are selected initially. The interface adapts
-to the terminal size; a wider terminal gives charts and process details more room.
-The application observes running workloads and has no process-kill control.
+See device activity, HBM usage, and running processes at a glance. astop is a lean,
+Ascend-only adaptation of [nvtop](https://github.com/Syllo/nvtop), with live history
+charts and JSON output for scripts.
 
-## Build and install
+![Live terminal overview with processes hidden](docs/assets/astop-terminal.svg)
 
-The build requires a C compiler, Make, pkg-config, ncurses development files,
-and an installed Ascend driver with its DCMI library. It does not require CMake
-or a running nvtop binary. On Ubuntu, install the build tools with:
+*Rendered from a live terminal session with the process table hidden (`astop -P`).*
+
+- **Device overview:** aligned device cards with NPU utilization, HBM usage,
+  temperature, and power, plus available clock and PCIe details.
+- **History charts:** teal NPU activity and soft blue HBM occupancy, with
+  configurable metrics and selected devices.
+- **Process table:** sortable PIDs, users, device memory, host CPU and memory,
+  and commands, subject to driver and Linux permissions.
+- **Keyboard settings:** choose charts, columns, and devices; save your preferences.
+- **Scriptable output:** take one JSON snapshot or stream successive snapshots.
+- **Read-only operation:** observe workloads without process-kill or device-control actions.
+
+## Quick start
+
+You need Linux, a C compiler, Make, pkg-config, ncurses development files, and an
+installed Ascend driver providing `libdcmi`. On Ubuntu:
 
 ```sh
-sudo apt install build-essential pkg-config libncurses-dev
-```
-
-Then clone, build, and install:
-
-```sh
+sudo apt install git build-essential pkg-config libncurses-dev
 git clone https://github.com/WingsOfPanda/astop.git
 cd astop
 make
-make install PREFIX="$HOME/.local"
-"$HOME/.local/bin/astop"
+./build/astop
 ```
 
-The build produces `build/astop`; installation places it in `~/.local/bin`.
-Add that directory to your shell's PATH to invoke it as `astop`.
-The default DCMI library directory is `/usr/local/Ascend/driver/lib64/driver`.
-For a different driver installation, pass `DCMI_LIBDIR=/path/to/library/directory`
-to `make`.
-
-Run `make test` for the focused regression checks. `make smoke` additionally
-requires Python 3, tmux, and the eight-device 910B4-1 reference configuration.
-It reads live telemetry and exercises isolated terminal sessions with temporary
-settings; it does not start workloads or signal existing workload processes.
-
-## Use
+To install for your user:
 
 ```sh
-astop                  # interactive monitor
-astop -d 10            # refresh every second; units are tenths of a second
-astop -s               # one JSON snapshot
-astop -l -d 10         # successive JSON snapshots every second
+make install PREFIX="$HOME/.local"
+export PATH="$HOME/.local/bin:$PATH"
+astop
+```
+
+Add the `export` line to your shell startup file to keep it across sessions.
+The build needs neither CMake nor an installed nvtop binary.
+
+The default DCMI library directory is `/usr/local/Ascend/driver/lib64/driver`.
+If your driver uses a different location, build with:
+
+```sh
+make DCMI_LIBDIR=/path/to/driver/lib64/driver
+```
+
+This directory is embedded in the binary's runtime library search path. If you
+change it after building, run `make clean` before rebuilding with the new value.
+
+## Usage
+
+```sh
+astop                  # interactive monitor; default refresh is one second
+astop -d 5             # refresh every half-second (units: tenths of a second)
 astop -P               # hide the process table
 astop -p               # hide history charts
-astop -i               # extra clocks, PCIe, and other available device details
-astop -X               # also show available static device specifications
+astop -i               # show additional available dynamic device details
+astop -i -X            # include static specs and secondary clock domains
 astop -C               # monochrome
+astop -s               # one JSON snapshot
+astop -l -d 10         # successive JSON snapshots every second
 astop --help
 ```
 
 | Key | Action |
 | --- | --- |
 | F2 | Configure charts, process columns, and selected devices |
-| F6 | Choose the process sort column |
-| + / - | Ascending / descending sort |
-| Arrow keys or hjkl | Navigate and scroll |
+| F6 | Choose the process sort column; Enter confirms |
+| + / - | Sort ascending / descending |
+| Arrow keys or h j k l | Navigate menus and scroll the process table |
 | F12 | Save settings |
 | Ctrl-L | Redraw |
 | q | Quit |
 
-Settings are separate from nvtop, under
-`${XDG_CONFIG_HOME:-$HOME/.config}/astop/interface.ini`.
+All devices are selected on first launch. Settings live in
+`$XDG_CONFIG_HOME/astop/interface.ini`, or `~/.config/astop/interface.ini` when
+`XDG_CONFIG_HOME` is unset, independently of nvtop. Use `-c /path/to/interface.ini`
+to load and save a different settings file.
 
-Metrics depend on successful DCMI queries. Unavailable readings show N/A or JSON
-null, and missing history samples leave gaps. In particular, the inherited Ascend
-collector supplies process IDs and device-memory usage, but not per-process NPU utilization. Host
-CPU and memory readings come from Linux process information.
+## JSON snapshots
 
-Loop mode emits successive JSON arrays, not one enclosing JSON document. Use a
-streaming JSON decoder. Each device has a numeric `device_id` and a `pci_bus_id`;
-many measurements retain nvtop's string values and units, such as `"50%"` and
-`"1800MHz"`. Missing metrics are `null`, and a successful query with no devices
-returns `[]`. Device IDs remain consistent when selecting a subset in the UI.
+`astop -s` writes a JSON array of devices, including processes unless `-P` is set.
+For example, inspect device IDs and utilization with Python 3:
 
-## Origin and appearance
+```sh
+astop -s -P | python3 -c 'import json, sys; print([(d["device_id"], d["npu_util"]) for d in json.load(sys.stdin)])'
+```
 
-The implementation starts from nvtop commit
-[`71094a9f7dfbfe7cbe9faebfdf055e580a034283`](https://github.com/Syllo/nvtop/commit/71094a9f7dfbfe7cbe9faebfdf055e580a034283),
-retaining its applicable copyright notices and GPLv3-or-later licensing.
-Other accelerator backends and platform-specific implementations are excluded.
-See [the nvtop reference](docs/nvtop-reference.md) for the source inventory.
+- `device_id` is numeric; `pci_bus_id` identifies the device's PCI address.
+  Device IDs stay consistent when selecting a subset in the interface.
+- Many measurements are strings: utilization such as `"50%"`, clocks such as
+  `"1800MHz"`, and memory byte counts such as `"68719476736"`.
+- Unavailable metrics are `null`. A successful query with no devices returns `[]`.
+- `astop -l` emits successive, formatted JSON arrays. It is neither JSON Lines
+  nor one enclosing JSON document; consume it with a streaming JSON decoder.
 
-The dark terminal theme uses Ascend's documented auxiliary blue-green (`#30B5C5`)
-for selection and NPU charts, soft blue (`#7AA2F7`) for memory charts, and amber
-for temperature warnings. Black text on the teal selection background keeps the
-selected row readable. Soft blue is an application choice for chart contrast.
-This is a terminal adaptation of the auxiliary palette, rather than the red logo
-palette. The source is the official
-[Ascend visual guide, main and auxiliary colors](https://www.hiascend.com/s/ascendstatic/lst/files/pdf/Visual_Specification_for_Brand_Authorization_V1.0.pdf).
+## Compatibility and limits
+
+The following configuration has been validated:
+
+| Component | Validated configuration |
+| --- | --- |
+| OS / architecture | Ubuntu 24.04 / ARM64 |
+| Devices | 8 × Ascend 910B4-1 |
+| Memory | 64 GiB HBM per device |
+| Ascend driver | 26.1.1 |
+
+Other models, architectures, and driver versions have not been validated.
+Metric availability depends on successful DCMI queries: missing readings show
+`N/A` in the interface or `null` in JSON, and missing history samples leave gaps.
+The Ascend collector supplies process IDs and device-memory usage, but **does not
+provide per-process NPU utilization**. Host CPU and memory readings come from
+Linux process information.
+
+## Development
+
+```sh
+make test              # focused core, history, layout, and empty-device checks
+make smoke             # live hardware and terminal integration checks
+```
+
+The checks require the build prerequisites above. `make smoke` also needs Python 3,
+tmux, and the eight-device 910B4-1 reference configuration. It exercises snapshots,
+terminal resizing, controls, and saved device selection using temporary settings.
+It does not start workloads or signal existing workload processes.
+
+## Troubleshooting
+
+- **`astop: command not found`:** add `~/.local/bin` to `PATH`, or run
+  `~/.local/bin/astop` directly.
+- **Cannot link or load `libdcmi`:** check that the Ascend driver is installed and
+  `DCMI_LIBDIR` points to its library directory; clean and rebuild after changing it.
+- **Too little room for the interface:** enlarge the terminal, use `-P` to hide
+  processes, or `-p` to hide charts. Wider terminals leave more room for detail.
+
+## License and attribution
+
+astop derives from nvtop commit
+[`71094a9`](https://github.com/Syllo/nvtop/commit/71094a9f7dfbfe7cbe9faebfdf055e580a034283)
+and retains its applicable copyright notices and **GPLv3-or-later** licensing.
+See [LICENSE](LICENSE), [NOTICE](NOTICE), and the
+[nvtop source reference](docs/nvtop-reference.md). DCMI declarations retain Huawei's
+Apache-2.0 notices; bundled INI and hash-table code retain their own licenses.
+
 This is an independent project, not an official Huawei product.
