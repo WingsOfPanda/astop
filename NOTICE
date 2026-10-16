@@ -1,0 +1,12 @@
+astop is an Ascend-only, read-only adaptation of NVTOP.
+Based on NVTOP commit 71094a9f7dfbfe7cbe9faebfdf055e580a034283
+https://github.com/Syllo/nvtop
+
+NVTOP-derived files retain their original copyright notices and are licensed
+under GNU GPL version 3 or (at your option) any later version. See LICENSE.
+The Ascend DCMI API declarations retain Huawei Technologies copyright and
+Apache License 2.0 notices (see licenses/Apache-2.0.txt).
+ini.h/ini.c and uthash.h retain their own licenses.
+
+astop modifications (2026): Ascend-only build and branding, read-only process
+interface, Ascend palette, telemetry validity and error handling improvements.
