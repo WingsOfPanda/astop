@@ -6,9 +6,9 @@ See device activity, HBM usage, and running processes at a glance. astop is a le
 Ascend-only adaptation of [nvtop](https://github.com/Syllo/nvtop), with live history
 charts and JSON output for scripts.
 
-![Live terminal overview with processes hidden](docs/assets/astop-terminal.svg)
+![astop displaying eight Ascend NPUs, utilization charts, and the process table](docs/assets/astop.png)
 
-*Rendered from a live terminal session with the process table hidden (`astop -P`).*
+*Eight Ascend NPUs with live device readings, utilization history, and running processes.*
 
 - **Device overview:** aligned device cards with NPU utilization, HBM usage,
   temperature, and power, plus PCIe, ECC, and HCCS link details when there is room.
