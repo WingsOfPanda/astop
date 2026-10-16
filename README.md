@@ -20,6 +20,33 @@ charts and JSON output for scripts.
 - **Scriptable output:** take one JSON snapshot or stream successive snapshots.
 - **Read-only operation:** observe workloads without process-kill or device-control actions.
 
+## Requirements
+
+| Purpose | Requirements |
+| --- | --- |
+| Run astop | Linux, an Ascend NPU, and a working Ascend driver installation exposing `libdcmi.so` and its dependent driver libraries |
+| Runtime libraries | glibc, `libncursesw.so.6`, and `libtinfo.so.6`; Ubuntu packages: `libc6`, `libncursesw6`, `libtinfo6` |
+| Interactive display | A terminal with a valid `TERM`; UTF-8 is recommended. 80 × 24 supports the compact overview; a wider/taller terminal shows more charts and detail |
+| Build from source | C11 compiler, Make, pkg-config, and ncurses development headers; Git to clone the repository |
+| Run live smoke checks | Python 3, tmux, and the validated eight-device 910B4-1 host described under [Compatibility and limits](#compatibility-and-limits) |
+
+The validated target is **Ubuntu 24.04 ARM64 with Ascend driver 26.1.1**. The
+binary built on this host references glibc 2.38 symbols and cannot run with an
+older glibc; testing used glibc 2.39. This does not establish compatibility with
+other distributions or driver versions.
+
+On Ubuntu 24.04, the terminal runtime libraries can be installed with:
+
+```sh
+sudo apt install libncursesw6 libtinfo6
+```
+
+Install the Ascend driver separately and ensure your user can query the devices.
+The driver libraries are supplied by the driver installation, not by astop.
+CANN's development toolkit, Python, and tmux are not needed to run the monitor;
+Python and tmux are used by the optional smoke checks. Snapshot modes (`-s`, `-l`)
+do not require an interactive terminal.
+
 ## Quick start
 
 You need Linux, a C compiler, Make, pkg-config, ncurses development files, and an
