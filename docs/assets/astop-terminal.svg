@@ -1,106 +1,98 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1392" height="742" viewBox="0 0 1392 742" role="img" aria-labelledby="title desc">
 <title id="title">astop monitoring eight Ascend 910B4-1 NPUs</title>
-<desc id="desc">Terminal preview rendered from a live astop -P session. Eight NPU cards show utilization, HBM use, temperature, power, PCIe generation and traffic, ECC errors, and HCCS health and traffic, followed by eight live history graphs. The process list is hidden.</desc>
+<desc id="desc">Terminal preview rendered from a live astop -P session. Eight compact NPU cards each use two metadata lines and one utilization and HBM bar line. The metadata shows identity, PCIe generation and traffic, temperature, power, ECC errors, and HCCS health and traffic. Eight live history graphs appear below. The process list is hidden.</desc>
 <rect width="1392" height="742" rx="10" fill="#000000"/>
 <path d="M10 0H1382Q1392 0 1392 10V34H0V10Q0 0 10 0Z" fill="#161b22"/>
 <text x="16" y="22" fill="#dadad9" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="13">astop · 8 × Ascend 910B4-1</text>
 <g font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="14" xml:space="preserve">
-<text x="24.5" y="54" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 0 </text>
-<text x="75.5" y="54" fill="#e5e5e5" textLength="289" lengthAdjust="spacingAndGlyphs"> [910B4-1]                        </text>
-<text x="364.5" y="54" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 1 </text>
-<text x="415.5" y="54" fill="#e5e5e5" textLength="289" lengthAdjust="spacingAndGlyphs"> [910B4-1]                        </text>
-<text x="704.5" y="54" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 2 </text>
-<text x="755.5" y="54" fill="#e5e5e5" textLength="289" lengthAdjust="spacingAndGlyphs"> [910B4-1]                        </text>
-<text x="1044.5" y="54" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 3 </text>
-<text x="1095.5" y="54" fill="#e5e5e5" textLength="85" lengthAdjust="spacingAndGlyphs"> [910B4-1]</text>
-<text x="24.5" y="71" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="58.5" y="71" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  33</text>
-<text x="92.5" y="71" fill="#e5e5e5" textLength="272" lengthAdjust="spacingAndGlyphs">°C POW 93.1W   FAN N/A          </text>
-<text x="364.5" y="71" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="398.5" y="71" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  30</text>
-<text x="432.5" y="71" fill="#e5e5e5" textLength="272" lengthAdjust="spacingAndGlyphs">°C POW 86.7W   FAN N/A          </text>
+<text x="16" y="54" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 0  [910B4-1]</text>
+<text x="152" y="54" fill="#e5e5e5" textLength="552.5" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms                     </text>
+<text x="704.5" y="54" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 1  [910B4-1]</text>
+<text x="840.5" y="54" fill="#e5e5e5" textLength="374" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms</text>
+<text x="16" y="71" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
+<text x="50" y="71" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  33</text>
+<text x="84" y="71" fill="#e5e5e5" textLength="620.5" lengthAdjust="spacingAndGlyphs">°C POW 93.2W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s      </text>
 <text x="704.5" y="71" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="738.5" y="71" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  32</text>
-<text x="772.5" y="71" fill="#e5e5e5" textLength="272" lengthAdjust="spacingAndGlyphs">°C POW 89.5W   FAN N/A          </text>
-<text x="1044.5" y="71" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="1078.5" y="71" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  35</text>
-<text x="1112.5" y="71" fill="#e5e5e5" textLength="187" lengthAdjust="spacingAndGlyphs">°C POW 89.1W   FAN N/A</text>
-<text x="24.5" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="50" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="186" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="211.5" y="88" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="220" y="88" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="228.5" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">   3.4/64.0Gi]  </text>
-<text x="364.5" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="390" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="526" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="551.5" y="88" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="560" y="88" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="568.5" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]  </text>
+<text x="738.5" y="71" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  31</text>
+<text x="772.5" y="71" fill="#e5e5e5" textLength="569.5" lengthAdjust="spacingAndGlyphs">°C POW 86.7W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s</text>
+<text x="16" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
+<text x="41.5" y="88" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="356" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="381.5" y="88" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="390" y="88" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="653.5" y="88" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">0Gi]  </text>
 <text x="704.5" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="730" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="866" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="891.5" y="88" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="900" y="88" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="908.5" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]  </text>
-<text x="1044.5" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="1070" y="88" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="1206" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="1231.5" y="88" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="1240" y="88" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="1248.5" y="88" fill="#e5e5e5" textLength="119" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]</text>
-<text x="16" y="105" fill="#e5e5e5" textLength="1249.5" lengthAdjust="spacingAndGlyphs"> PCIe GEN4@16x      ECC 0/0              PCIe GEN4@16x      ECC 0/0              PCIe GEN4@16x      ECC 0/0              PCIe GEN4@16x      ECC 0/0</text>
-<text x="16" y="122" fill="#e5e5e5" textLength="1266.5" lengthAdjust="spacingAndGlyphs"> RX 0MB/ms          TX 0MB/ms            RX 0MB/ms          TX 0MB/ms            RX 0MB/ms          TX 0MB/ms            RX 0MB/ms          TX 0MB/ms</text>
-<text x="16" y="139" fill="#e5e5e5" textLength="1207" lengthAdjust="spacingAndGlyphs"> HCCS 7x            OK                   HCCS 7x            OK                   HCCS 7x            OK                   HCCS 7x            OK</text>
-<text x="16" y="156" fill="#e5e5e5" textLength="1300.5" lengthAdjust="spacingAndGlyphs"> RX 0.000KiB/s      TX 0.000KiB/s        RX 0.000KiB/s      TX 0.000KiB/s        RX 0.000KiB/s      TX 0.000KiB/s        RX 0.000KiB/s      TX 0.000KiB/s</text>
-<text x="24.5" y="190" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 4 </text>
-<text x="75.5" y="190" fill="#e5e5e5" textLength="289" lengthAdjust="spacingAndGlyphs"> [910B4-1]                        </text>
-<text x="364.5" y="190" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 5 </text>
-<text x="415.5" y="190" fill="#e5e5e5" textLength="289" lengthAdjust="spacingAndGlyphs"> [910B4-1]                        </text>
-<text x="704.5" y="190" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 6 </text>
-<text x="755.5" y="190" fill="#e5e5e5" textLength="289" lengthAdjust="spacingAndGlyphs"> [910B4-1]                        </text>
-<text x="1044.5" y="190" fill="#dadad9" textLength="51" lengthAdjust="spacingAndGlyphs">NPU 7 </text>
-<text x="1095.5" y="190" fill="#e5e5e5" textLength="85" lengthAdjust="spacingAndGlyphs"> [910B4-1]</text>
-<text x="24.5" y="207" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="58.5" y="207" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  39</text>
-<text x="92.5" y="207" fill="#e5e5e5" textLength="272" lengthAdjust="spacingAndGlyphs">°C POW 90.6W   FAN N/A          </text>
-<text x="364.5" y="207" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="398.5" y="207" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  37</text>
-<text x="432.5" y="207" fill="#e5e5e5" textLength="272" lengthAdjust="spacingAndGlyphs">°C POW 91.7W   FAN N/A          </text>
+<text x="730" y="88" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="1044.5" y="88" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="1070" y="88" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="1078.5" y="88" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="1342" y="88" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">0Gi]</text>
+<text x="16" y="122" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 2  [910B4-1]</text>
+<text x="152" y="122" fill="#e5e5e5" textLength="552.5" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms                     </text>
+<text x="704.5" y="122" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 3  [910B4-1]</text>
+<text x="840.5" y="122" fill="#e5e5e5" textLength="374" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms</text>
+<text x="16" y="139" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
+<text x="50" y="139" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  32</text>
+<text x="84" y="139" fill="#e5e5e5" textLength="620.5" lengthAdjust="spacingAndGlyphs">°C POW 89.5W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s      </text>
+<text x="704.5" y="139" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
+<text x="738.5" y="139" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  35</text>
+<text x="772.5" y="139" fill="#e5e5e5" textLength="569.5" lengthAdjust="spacingAndGlyphs">°C POW 88.9W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s</text>
+<text x="16" y="156" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
+<text x="41.5" y="156" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="356" y="156" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="381.5" y="156" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="390" y="156" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="653.5" y="156" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">0Gi]  </text>
+<text x="704.5" y="156" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
+<text x="730" y="156" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="1044.5" y="156" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="1070" y="156" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="1078.5" y="156" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="1342" y="156" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">0Gi]</text>
+<text x="16" y="190" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 4  [910B4-1]</text>
+<text x="152" y="190" fill="#e5e5e5" textLength="552.5" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms                     </text>
+<text x="704.5" y="190" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 5  [910B4-1]</text>
+<text x="840.5" y="190" fill="#e5e5e5" textLength="374" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms</text>
+<text x="16" y="207" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
+<text x="50" y="207" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  39</text>
+<text x="84" y="207" fill="#e5e5e5" textLength="620.5" lengthAdjust="spacingAndGlyphs">°C POW 90.6W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s      </text>
 <text x="704.5" y="207" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
 <text x="738.5" y="207" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  37</text>
-<text x="772.5" y="207" fill="#e5e5e5" textLength="272" lengthAdjust="spacingAndGlyphs">°C POW 90.9W   FAN N/A          </text>
-<text x="1044.5" y="207" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
-<text x="1078.5" y="207" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  39</text>
-<text x="1112.5" y="207" fill="#e5e5e5" textLength="187" lengthAdjust="spacingAndGlyphs">°C POW 86.9W   FAN N/A</text>
-<text x="24.5" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="50" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="186" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="211.5" y="224" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="220" y="224" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="228.5" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]  </text>
-<text x="364.5" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="390" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="526" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="551.5" y="224" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="560" y="224" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="568.5" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]  </text>
+<text x="772.5" y="207" fill="#e5e5e5" textLength="569.5" lengthAdjust="spacingAndGlyphs">°C POW 91.5W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s</text>
+<text x="16" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
+<text x="41.5" y="224" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="356" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="381.5" y="224" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="390" y="224" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="653.5" y="224" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">0Gi]  </text>
 <text x="704.5" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="730" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="866" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="891.5" y="224" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="900" y="224" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="908.5" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]  </text>
-<text x="1044.5" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
-<text x="1070" y="224" fill="#e5e5e5" textLength="136" lengthAdjust="spacingAndGlyphs">[           0%] </text>
-<text x="1206" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
-<text x="1231.5" y="224" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
-<text x="1240" y="224" fill="#00cd00" textLength="8.5" lengthAdjust="spacingAndGlyphs">|</text>
-<text x="1248.5" y="224" fill="#e5e5e5" textLength="119" lengthAdjust="spacingAndGlyphs">   3.3/64.0Gi]</text>
-<text x="16" y="241" fill="#e5e5e5" textLength="1249.5" lengthAdjust="spacingAndGlyphs"> PCIe GEN4@16x      ECC 0/0              PCIe GEN4@16x      ECC 0/0              PCIe GEN4@16x      ECC 0/0              PCIe GEN4@16x      ECC 0/0</text>
-<text x="16" y="258" fill="#e5e5e5" textLength="1266.5" lengthAdjust="spacingAndGlyphs"> RX 0MB/ms          TX 0MB/ms            RX 0MB/ms          TX 0MB/ms            RX 0MB/ms          TX 0MB/ms            RX 0MB/ms          TX 0MB/ms</text>
-<text x="16" y="275" fill="#e5e5e5" textLength="1207" lengthAdjust="spacingAndGlyphs"> HCCS 7x            OK                   HCCS 7x            OK                   HCCS 7x            OK                   HCCS 7x            OK</text>
-<text x="16" y="292" fill="#e5e5e5" textLength="1300.5" lengthAdjust="spacingAndGlyphs"> RX 0.000KiB/s      TX 0.000KiB/s        RX 0.000KiB/s      TX 0.000KiB/s        RX 0.000KiB/s      TX 0.000KiB/s        RX 0.000KiB/s      TX 0.000KiB/s</text>
+<text x="730" y="224" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="1044.5" y="224" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="1070" y="224" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="1078.5" y="224" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="1342" y="224" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">0Gi]</text>
+<text x="16" y="258" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 6  [910B4-1]</text>
+<text x="152" y="258" fill="#e5e5e5" textLength="552.5" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms                     </text>
+<text x="704.5" y="258" fill="#dadad9" textLength="136" lengthAdjust="spacingAndGlyphs">NPU 7  [910B4-1]</text>
+<text x="840.5" y="258" fill="#e5e5e5" textLength="374" lengthAdjust="spacingAndGlyphs">        PCIe GEN4@16x RX 0MB/ms    TX 0MB/ms</text>
+<text x="16" y="275" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
+<text x="50" y="275" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  37</text>
+<text x="84" y="275" fill="#e5e5e5" textLength="620.5" lengthAdjust="spacingAndGlyphs">°C POW 90.9W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s      </text>
+<text x="704.5" y="275" fill="#dadad9" textLength="34" lengthAdjust="spacingAndGlyphs">TEMP</text>
+<text x="738.5" y="275" fill="#00cd00" textLength="34" lengthAdjust="spacingAndGlyphs">  39</text>
+<text x="772.5" y="275" fill="#e5e5e5" textLength="569.5" lengthAdjust="spacingAndGlyphs">°C POW 86.9W   ECC 0/0     HCCS 7x OK   RX 0.000KiB/s TX 0.000KiB/s</text>
+<text x="16" y="292" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
+<text x="41.5" y="292" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="356" y="292" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="381.5" y="292" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="390" y="292" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="653.5" y="292" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">0Gi]  </text>
+<text x="704.5" y="292" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">NPU</text>
+<text x="730" y="292" fill="#e5e5e5" textLength="314.5" lengthAdjust="spacingAndGlyphs">[                                0%] </text>
+<text x="1044.5" y="292" fill="#dadad9" textLength="25.5" lengthAdjust="spacingAndGlyphs">HBM</text>
+<text x="1070" y="292" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">[</text>
+<text x="1078.5" y="292" fill="#00cd00" textLength="263.5" lengthAdjust="spacingAndGlyphs">|||||||||||||||||||||||58.1/64.</text>
+<text x="1342" y="292" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">0Gi]</text>
 <text x="16" y="309" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   ┌──────────────────────────────────┐    ┌──────────────────────────────────┐    ┌──────────────────────────────────┐    ┌──────────────────────────────────┐</text>
 <text x="16" y="326" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">100│</text>
 <text x="50" y="326" fill="#30b5c5" textLength="51" lengthAdjust="spacingAndGlyphs">NPU0 %</text>
@@ -113,13 +105,17 @@
 <text x="1121" y="326" fill="#e5e5e5" textLength="246.5" lengthAdjust="spacingAndGlyphs">                            │</text>
 <text x="16" y="343" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">   │</text>
 <text x="50" y="343" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU0 HBM%</text>
-<text x="126.5" y="343" fill="#e5e5e5" textLength="263.5" lengthAdjust="spacingAndGlyphs">                         │    │</text>
+<text x="228.5" y="343" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="339" y="343" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">│    │</text>
 <text x="390" y="343" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU1 HBM%</text>
-<text x="466.5" y="343" fill="#e5e5e5" textLength="263.5" lengthAdjust="spacingAndGlyphs">                         │    │</text>
+<text x="568.5" y="343" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="679" y="343" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">│    │</text>
 <text x="730" y="343" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU2 HBM%</text>
-<text x="806.5" y="343" fill="#e5e5e5" textLength="263.5" lengthAdjust="spacingAndGlyphs">                         │    │</text>
+<text x="908.5" y="343" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="1019" y="343" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">│    │</text>
 <text x="1070" y="343" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU3 HBM%</text>
-<text x="1146.5" y="343" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">                         │</text>
+<text x="1248.5" y="343" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="1359" y="343" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16" y="360" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs"> 75│                                  │  75│                                  │  75│                                  │  75│                                  │</text>
 <text x="16" y="377" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   │                                  │    │                                  │    │                                  │    │                                  │</text>
 <text x="16" y="394" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   │                                  │    │                                  │    │                                  │    │                                  │</text>
@@ -129,64 +125,16 @@
 <text x="16" y="462" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   │                                  │    │                                  │    │                                  │    │                                  │</text>
 <text x="16" y="479" fill="#e5e5e5" textLength="204" lengthAdjust="spacingAndGlyphs">  0│                    </text>
 <text x="220" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="228.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="237" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="245.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="254" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="262.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="271" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="279.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="288" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="296.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="305" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="313.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="322" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="330.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="237" y="479" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="339" y="479" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">│   0│                    </text>
 <text x="560" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="568.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="577" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="585.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="594" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="602.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="611" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="619.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="628" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="636.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="645" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="653.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="662" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="670.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="577" y="479" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="679" y="479" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">│   0│                    </text>
 <text x="900" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="908.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="917" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="925.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="934" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="942.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="951" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="959.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="968" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="976.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="985" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="993.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1002" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1010.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="917" y="479" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="1019" y="479" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">│   0│                    </text>
 <text x="1240" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1248.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1257" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1265.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1274" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1282.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1291" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1299.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1308" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1316.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1325" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1333.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1342" y="479" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1350.5" y="479" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="1257" y="479" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="1359" y="479" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16" y="496" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   └17s────12s──────8s──────4s──────0s┘    └17s────12s──────8s──────4s──────0s┘    └17s────12s──────8s──────4s──────0s┘    └17s────12s──────8s──────4s──────0s┘</text>
 <text x="16" y="513" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   ┌──────────────────────────────────┐    ┌──────────────────────────────────┐    ┌──────────────────────────────────┐    ┌──────────────────────────────────┐</text>
@@ -201,13 +149,17 @@
 <text x="1121" y="530" fill="#e5e5e5" textLength="246.5" lengthAdjust="spacingAndGlyphs">                            │</text>
 <text x="16" y="547" fill="#e5e5e5" textLength="34" lengthAdjust="spacingAndGlyphs">   │</text>
 <text x="50" y="547" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU4 HBM%</text>
-<text x="126.5" y="547" fill="#e5e5e5" textLength="263.5" lengthAdjust="spacingAndGlyphs">                         │    │</text>
+<text x="228.5" y="547" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="339" y="547" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">│    │</text>
 <text x="390" y="547" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU5 HBM%</text>
-<text x="466.5" y="547" fill="#e5e5e5" textLength="263.5" lengthAdjust="spacingAndGlyphs">                         │    │</text>
+<text x="568.5" y="547" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="679" y="547" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">│    │</text>
 <text x="730" y="547" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU6 HBM%</text>
-<text x="806.5" y="547" fill="#e5e5e5" textLength="263.5" lengthAdjust="spacingAndGlyphs">                         │    │</text>
+<text x="908.5" y="547" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="1019" y="547" fill="#e5e5e5" textLength="51" lengthAdjust="spacingAndGlyphs">│    │</text>
 <text x="1070" y="547" fill="#7aa2f7" textLength="76.5" lengthAdjust="spacingAndGlyphs">NPU7 HBM%</text>
-<text x="1146.5" y="547" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">                         │</text>
+<text x="1248.5" y="547" fill="#7aa2f7" textLength="110.5" lengthAdjust="spacingAndGlyphs">─────────────</text>
+<text x="1359" y="547" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16" y="564" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs"> 75│                                  │  75│                                  │  75│                                  │  75│                                  │</text>
 <text x="16" y="581" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   │                                  │    │                                  │    │                                  │    │                                  │</text>
 <text x="16" y="598" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   │                                  │    │                                  │    │                                  │    │                                  │</text>
@@ -217,64 +169,16 @@
 <text x="16" y="666" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   │                                  │    │                                  │    │                                  │    │                                  │</text>
 <text x="16" y="683" fill="#e5e5e5" textLength="204" lengthAdjust="spacingAndGlyphs">  0│                    </text>
 <text x="220" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="228.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="237" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="245.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="254" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="262.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="271" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="279.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="288" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="296.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="305" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="313.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="322" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="330.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="237" y="683" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="339" y="683" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">│   0│                    </text>
 <text x="560" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="568.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="577" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="585.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="594" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="602.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="611" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="619.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="628" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="636.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="645" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="653.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="662" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="670.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="577" y="683" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="679" y="683" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">│   0│                    </text>
 <text x="900" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="908.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="917" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="925.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="934" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="942.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="951" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="959.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="968" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="976.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="985" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="993.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1002" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1010.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="917" y="683" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="1019" y="683" fill="#e5e5e5" textLength="221" lengthAdjust="spacingAndGlyphs">│   0│                    </text>
 <text x="1240" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1248.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1257" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1265.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1274" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1282.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1291" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1299.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1308" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1316.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1325" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1333.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1342" y="683" fill="#30b5c5" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
-<text x="1350.5" y="683" fill="#7aa2f7" textLength="8.5" lengthAdjust="spacingAndGlyphs">─</text>
+<text x="1257" y="683" fill="#30b5c5" textLength="102" lengthAdjust="spacingAndGlyphs">────────────</text>
 <text x="1359" y="683" fill="#e5e5e5" textLength="8.5" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="16" y="700" fill="#e5e5e5" textLength="1351.5" lengthAdjust="spacingAndGlyphs">   └17s────12s──────8s──────4s──────0s┘    └17s────12s──────8s──────4s──────0s┘    └17s────12s──────8s──────4s──────0s┘    └17s────12s──────8s──────4s──────0s┘</text>
 <text x="16" y="717" fill="#e5e5e5" textLength="17" lengthAdjust="spacingAndGlyphs">F2</text>

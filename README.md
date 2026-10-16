@@ -113,8 +113,13 @@ to load and save a different settings file.
 
 ### PCIe, ECC, and HCCS
 
-Wide/tall terminals show link details on each device card automatically. Small
-terminals retain the compact overview; `-i` requests the detailed view explicitly.
+Wide/tall terminals show link details on each device card automatically, using
+nvtop's compact shape: the name and PCIe readings on the first line,
+temperature/power/ECC/HCCS on the second, and NPU/HBM bars on the third. Cards
+use fixed field widths and wrap into aligned columns instead of adding a
+separate link-details block. Small terminals retain the compact overview;
+`-i` requests the detailed view with primary clocks in the same metadata lines.
+`-X` may add rows for optional static specifications.
 
 - **PCIe:** current negotiated generation and lane width, plus driver-reported
   RX/TX bandwidth. The reference host currently negotiates Gen4 x16 even though

@@ -43,18 +43,91 @@ static void check_snapshot_links(struct gpu_info *device, bool populated) {
   list_del(&device->list);
 }
 
+static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, bool clocks, bool populated) {
+  FILE *output = tmpfile(), *input = tmpfile();
+  assert(output && input);
+  SCREEN *screen = newterm("xterm-256color", output, input);
+  assert(screen);
+  assert(resizeterm(rows, cols) == OK);
+  start_color();
+  unsigned char colors[MAX_LINES_PER_PLOT] = {0};
+  initialize_colors(colors);
+  struct device_window window;
+  struct nvtop_interface interface = {.devices_win = &window, .options.has_gpu_info_bar = clocks};
+  struct extra_info_item items[MAX_EXTRA_INFO_ITEMS];
+  unsigned primary_count = collect_primary_info(device, &interface.options, items, MAX_EXTRA_INFO_ITEMS);
+  assert(collect_extra_info(device, &interface.options, items, MAX_EXTRA_INFO_ITEMS) == 0);
+  unsigned primary_cols = 64 + primary_count * PRIMARY_INFO_COLS +
+      (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm) ? 12 : 0);
+  interface.device_header_cols = device_length(8, rows, cols, 0, primary_cols, clocks);
+  unsigned per_row = device_cards_per_row(8, interface.device_header_cols, cols);
+  unsigned card_cols = (cols - 2 * (per_row - 1)) / per_row;
+  assert(card_cols >= interface.device_header_cols);
+  unsigned margin = (cols - per_row * card_cols - 2 * (per_row - 1)) / 2;
+  LIST_HEAD(devices);
+  list_add_tail(&device->list, &devices);
+  for (unsigned i = 0; i < 8; ++i) {
+    unsigned x = margin + i % per_row * (card_cols + 2), y = i / per_row * 4;
+    device->device_id = i;
+    alloc_device_window(y, x, card_cols, 0, &window);
+    draw_devices(&devices, &interface);
+    doupdate();
+    char first[512], second[512], bars[512];
+    mvwinnstr(curscr, y, x, first, card_cols);
+    mvwinnstr(curscr, y + 1, x, second, card_cols);
+    mvwinnstr(curscr, y + 2, x, bars, card_cols);
+    assert(strstr(first, "NPU"));
+    assert(strstr(second, "TEMP") && strstr(second, "POW"));
+    assert(strstr(bars, "NPU[") && strstr(bars, "HBM["));
+    if (interface.device_header_cols >= DETAILED_DEVICE_COLS) {
+      assert(strstr(first, populated ? "PCIe GEN4@16x" : "PCIe N/A"));
+      assert(strstr(first, populated ? "RX 123MB/ms" : "RX N/A"));
+      assert(strstr(first, populated ? "TX 0MB/ms" : "TX N/A"));
+      assert(strstr(second, populated ? "ECC 1844..." : "ECC N/A/N/A"));
+      assert(strstr(second, populated ? "HCCS 7x WARN" : "HCCS N/A N/A"));
+      assert(strstr(second, populated ? "RX 1.000MiB/s" : "RX N/A"));
+      assert(strstr(second, populated ? "TX 0.000KiB/s" : "TX N/A"));
+      if (populated)
+        assert(PAIR_NUMBER(mvwinch(curscr, y + 1, x + 35)) == warning_color);
+      if (clocks) {
+        assert(strstr(first, GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, gpu_clock_speed)
+            ? "NPU 1234MHz" : "NPU N/A"));
+        assert(strstr(first, GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, mem_clock_speed)
+            ? "HBM 1600MHz" : "HBM N/A"));
+      }
+      if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm))
+        assert(strstr(first, "FAN 4321RPM"));
+    } else {
+      assert(!strstr(first, "PCIe") && !strstr(second, "HCCS"));
+    }
+    for (unsigned col = 0; col < card_cols; ++col)
+      assert((mvwinch(curscr, y + 3, x + col) & A_CHARTEXT) == ' ');
+    if (i % per_row) {
+      for (unsigned row = y; row < y + 3; ++row) {
+        assert((mvwinch(curscr, row, x - 1) & A_CHARTEXT) == ' ');
+        assert((mvwinch(curscr, row, x - 2) & A_CHARTEXT) == ' ');
+      }
+    }
+    free_device_windows(&window);
+  }
+  list_del(&device->list);
+  endwin();
+  delscreen(screen);
+  fclose(input);
+  fclose(output);
+}
+
 int main(void) {
-  assert(link_rows_for_layout(8, 24, 80, 0, false) == 0);
-  assert(link_rows_for_layout(8, 50, 160, 0, false) == LINK_INFO_ROWS);
-  assert(link_rows_for_layout(8, 50, 320, 0, false) == LINK_INFO_ROWS);
-  assert(link_rows_for_layout(8, 24, 80, 1, true) == LINK_INFO_ROWS);
-  assert(link_rows_for_layout(1, 24, 80, 1, true) == LINK_INFO_ROWS);
-  // Returning from a wide layout to a short terminal must shed automatic rows.
-  assert(link_rows_for_layout(8, 20, 160, 0, false) == 0);
+  assert(device_length(8, 24, 80, 0, 76, false) == 38);
+  assert(device_length(8, 50, 160, 0, 76, false) == 76);
+  assert(device_length(8, 50, 312, 0, 76, false) == 76);
+  assert(device_length(8, 50, 320, 0, 76, false) == 76);
+  assert(device_length(8, 24, 80, 0, 92, true) == 92);
+  assert(device_length(8, 18, 160, 0, 76, false) == 38);
 
   struct gpu_info device = {0};
   struct gpuinfo_dynamic_info *info = &device.dynamic_info;
-  char cells[LINK_INFO_ROWS * 2][LINK_INFO_CELL_SIZE];
+  char cells[LINK_INFO_FIELDS][LINK_INFO_CELL_SIZE];
   format_link_info(info, cells);
   assert(!strcmp(cells[0], "PCIe N/A"));
   assert(!strcmp(cells[1], "ECC N/A/N/A"));
@@ -65,6 +138,9 @@ int main(void) {
   assert(!strcmp(cells[6], "RX N/A"));
   assert(!strcmp(cells[7], "TX N/A"));
   check_snapshot_links(&device, false);
+  check_render(&device, 80, 24, false, false);
+  check_render(&device, 160, 50, false, false);
+  check_render(&device, 320, 50, true, false);
 
   SET_GPUINFO_DYNAMIC(info, pcie_link_gen, 4);
   SET_GPUINFO_DYNAMIC(info, pcie_link_width, 16);
@@ -86,6 +162,15 @@ int main(void) {
   assert(!strcmp(cells[6], "RX 1.000MiB/s"));
   assert(!strcmp(cells[7], "TX 0.000KiB/s"));
   check_snapshot_links(&device, true);
+  check_render(&device, 160, 50, false, true);
+  check_render(&device, 312, 50, false, true);
+  check_render(&device, 320, 50, false, true);
+  check_render(&device, 320, 50, true, true);
+  SET_GPUINFO_DYNAMIC(info, gpu_clock_speed, 1234);
+  SET_GPUINFO_DYNAMIC(info, mem_clock_speed, 1600);
+  SET_GPUINFO_DYNAMIC(info, fan_rpm, 4321);
+  check_render(&device, 320, 50, true, true);
+  check_render(&device, 312, 50, false, true);
   fit_link_cell(cells[1], 18);
   assert(strlen(cells[1]) == 18);
   assert(!strncmp(cells[1], "ECC 18446744073", 15));

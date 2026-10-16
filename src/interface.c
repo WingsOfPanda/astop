@@ -44,6 +44,9 @@
 #include <unistd.h>
 
 #define EXTRA_INFO_PER_ROW 2
+#define COMPACT_DEVICE_COLS 38
+#define DETAILED_DEVICE_COLS 76
+#define PRIMARY_INFO_COLS 14
 
 static unsigned int sizeof_process_field[process_field_count] = {
     [process_pid] = 7,       [process_user] = 4,          [process_gpu_id] = 3,   [process_type] = 8,
@@ -54,27 +57,24 @@ static unsigned int sizeof_process_field[process_field_count] = {
 
 // Compact cards keep all eight devices visible on an 80-column terminal.
 static void alloc_device_window(unsigned start_row, unsigned start_col, unsigned cols,
-                                const nvtop_interface_option *options, unsigned extra_info_rows, unsigned link_info_rows,
+                                unsigned extra_info_rows,
                                 struct device_window *dwin) {
-  (void)options;
   memset(dwin, 0, sizeof(*dwin));
   dwin->name_win = newwin(1, cols, start_row, start_col);
   dwin->temperature = newwin(1, 10, start_row + 1, start_col);
   dwin->power_info = newwin(1, 13, start_row + 1, start_col + 10);
-  dwin->fan_speed = newwin(1, cols - 23, start_row + 1, start_col + 23);
+  dwin->metadata = newwin(1, cols - 23, start_row + 1, start_col + 23);
   unsigned bar_cols = (cols - 1) / 2;
   dwin->gpu_util_no_enc_and_dec = newwin(1, bar_cols, start_row + 2, start_col);
   dwin->mem_util_no_enc_and_dec = newwin(1, cols - bar_cols - 1, start_row + 2, start_col + bar_cols + 1);
-  if (!dwin->name_win || !dwin->temperature || !dwin->power_info || !dwin->fan_speed ||
+  if (!dwin->name_win || !dwin->temperature || !dwin->power_info || !dwin->metadata ||
       !dwin->gpu_util_no_enc_and_dec || !dwin->mem_util_no_enc_and_dec) {
     endwin();
     fprintf(stderr, "Error: terminal too small for device cards\n");
     exit(EXIT_FAILURE);
   }
-  for (unsigned i = 0; i < link_info_rows; ++i)
-    dwin->link_info[i] = newwin(1, cols, start_row + 3 + i, start_col);
   for (unsigned i = 0; i < min(extra_info_rows * EXTRA_INFO_PER_ROW, MAX_EXTRA_INFO_ITEMS); ++i)
-    dwin->extra_info[i] = newwin(1, cols / 2, start_row + 3 + link_info_rows + i / EXTRA_INFO_PER_ROW,
+    dwin->extra_info[i] = newwin(1, cols / 2, start_row + 3 + i / EXTRA_INFO_PER_ROW,
                                start_col + i % EXTRA_INFO_PER_ROW * (cols / 2));
 }
 
@@ -82,12 +82,9 @@ static void free_device_windows(struct device_window *dwin) {
   delwin(dwin->name_win);
   delwin(dwin->temperature);
   delwin(dwin->power_info);
-  delwin(dwin->fan_speed);
+  delwin(dwin->metadata);
   delwin(dwin->gpu_util_no_enc_and_dec);
   delwin(dwin->mem_util_no_enc_and_dec);
-  for (unsigned i = 0; i < LINK_INFO_ROWS; ++i)
-    if (dwin->link_info[i])
-      delwin(dwin->link_info[i]);
   for (unsigned i = 0; i < MAX_EXTRA_INFO_ITEMS; ++i)
     if (dwin->extra_info[i])
       delwin(dwin->extra_info[i]);
@@ -238,13 +235,14 @@ static void alloc_plot_window(unsigned devices_count, struct window_position *pl
   }
 }
 
-static unsigned device_length(void) { return 38; }
-
-static unsigned link_rows_for_layout(unsigned devices, unsigned rows, unsigned cols, unsigned extra_rows, bool force) {
-  unsigned per_row = device_cards_per_row(devices, device_length(), cols);
+static unsigned device_length(unsigned devices, unsigned rows, unsigned cols, unsigned extra_rows,
+                              unsigned detailed_cols, bool force) {
+  detailed_cols = max(DETAILED_DEVICE_COLS, detailed_cols);
+  unsigned per_row = device_cards_per_row(devices, detailed_cols, cols);
   unsigned stacks = (devices + per_row - 1) / per_row;
   unsigned process_rows = 1 + max(5, min(rows / 4, devices * 3));
-  return force || stacks * (3 + extra_rows + LINK_INFO_ROWS) + process_rows + 1 <= rows ? LINK_INFO_ROWS : 0;
+  return force || (cols >= detailed_cols && stacks * (3 + extra_rows) + process_rows + 1 <= rows)
+             ? detailed_cols : COMPACT_DEVICE_COLS;
 }
 
 static pid_t nvtop_pid;
@@ -254,11 +252,13 @@ static void initialize_all_windows(struct nvtop_interface *dwin) {
   getmaxyx(stdscr, rows, cols);
 
   unsigned int devices_count = dwin->monitored_dev_count;
-  dwin->link_info_rows = link_rows_for_layout(devices_count, rows, cols, dwin->extra_info_rows,
-                                            dwin->options.has_gpu_info_bar);
-  unsigned cards_per_row = device_cards_per_row(devices_count, device_length(), cols);
+  dwin->device_header_cols = device_length(devices_count, rows, cols, dwin->extra_info_rows,
+      max(dwin->detailed_header_cols, dwin->options.has_gpu_info_bar ? 64 + 2 * PRIMARY_INFO_COLS : 0),
+      dwin->options.has_gpu_info_bar);
+  unsigned cards_per_row = device_cards_per_row(devices_count, dwin->device_header_cols, cols);
   unsigned card_stacks = (devices_count + cards_per_row - 1) / cards_per_row;
-  dwin->layout_too_small = cols < 40 || rows < (int)(card_stacks * (3 + dwin->extra_info_rows + dwin->link_info_rows) + 5);
+  dwin->layout_too_small = cols < 40 || cols < (int)dwin->device_header_cols ||
+      rows < (int)(card_stacks * (3 + dwin->extra_info_rows) + 5);
   if (dwin->layout_too_small) {
     dwin->num_plots = 0;
     dwin->setup_win.visible = false;
@@ -272,8 +272,8 @@ static void initialize_all_windows(struct nvtop_interface *dwin) {
   struct window_position plot_positions[MAX_CHARTS];
   struct window_position setup_position;
 
-  unsigned int device_rows = 3 + dwin->extra_info_rows + dwin->link_info_rows;
-  compute_sizes_from_layout(devices_count, device_rows, device_length(), rows - 1, cols,
+  unsigned int device_rows = 3 + dwin->extra_info_rows;
+  compute_sizes_from_layout(devices_count, device_rows, dwin->device_header_cols, rows - 1, cols,
                             dwin->options.gpu_specific_opts, dwin->options.process_fields_displayed, device_positions,
                             &dwin->num_plots, plot_positions, map_device_to_plot, &process_position, &setup_position,
                             dwin->options.hide_processes_list);
@@ -281,8 +281,8 @@ static void initialize_all_windows(struct nvtop_interface *dwin) {
   alloc_plot_window(devices_count, plot_positions, map_device_to_plot, dwin);
 
   for (unsigned int i = 0; i < devices_count; ++i) {
-    alloc_device_window(device_positions[i].posY, device_positions[i].posX, device_positions[i].sizeX, &dwin->options,
-                        dwin->extra_info_rows, dwin->link_info_rows, &dwin->devices_win[i]);
+    alloc_device_window(device_positions[i].posY, device_positions[i].posX, device_positions[i].sizeX,
+                        dwin->extra_info_rows, &dwin->devices_win[i]);
   }
 
   alloc_process_with_option(dwin, process_position.posX, process_position.posY, process_position.sizeX,
@@ -488,22 +488,19 @@ static void add_extra_info_item(struct extra_info_item *items, unsigned *count, 
   (*count)++;
 }
 
-// Builds, in display order, the fields the extra GPU info bar shows for one
-// device: the dynamic primary clock domains when -i is on, then the static
-// specs and the secondary clock domains when -X is on. Fields the driver does
-// not report are simply not appended, so a device with nothing to show costs no
-// row at all.
-static unsigned collect_extra_info(const struct gpu_info *device, const nvtop_interface_option *options,
+// Primary clocks share the two metadata lines; only -X adds rows below the meters.
+static unsigned collect_primary_info(const struct gpu_info *device, const nvtop_interface_option *options,
                                    struct extra_info_item *items, unsigned max_items) {
   unsigned count = 0;
   const struct gpuinfo_dynamic_info *dynamic_info = &device->dynamic_info;
-  const struct gpuinfo_static_info *static_info = &device->static_info;
 
   if (options->has_gpu_info_bar) {
-    if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, gpu_clock_speed))
-      add_extra_info_item(items, &count, max_items, "NPU", dynamic_info->gpu_clock_speed, "MHz");
-    if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, mem_clock_speed))
-      add_extra_info_item(items, &count, max_items, "HBM", dynamic_info->mem_clock_speed, "MHz");
+    add_extra_info_item(items, &count, max_items, "NPU", dynamic_info->gpu_clock_speed, "MHz");
+    if (!GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, gpu_clock_speed))
+      snprintf(items[count - 1].value, sizeof(items[count - 1].value), "N/A");
+    add_extra_info_item(items, &count, max_items, "HBM", dynamic_info->mem_clock_speed, "MHz");
+    if (!GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, mem_clock_speed))
+      snprintf(items[count - 1].value, sizeof(items[count - 1].value), "N/A");
     if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, encoder_rate))
       add_extra_info_item(items, &count, max_items, "ENC", dynamic_info->encoder_rate, "%");
     if (GPUINFO_DYNAMIC_FIELD_VALID(dynamic_info, decoder_rate))
@@ -519,6 +516,14 @@ static unsigned collect_extra_info(const struct gpu_info *device, const nvtop_in
     }
   }
 
+  return count;
+}
+
+static unsigned collect_extra_info(const struct gpu_info *device, const nvtop_interface_option *options,
+                                   struct extra_info_item *items, unsigned max_items) {
+  unsigned count = 0;
+  const struct gpuinfo_dynamic_info *dynamic_info = &device->dynamic_info;
+  const struct gpuinfo_static_info *static_info = &device->static_info;
   if (options->has_all_info_bar) {
     if (GPUINFO_STATIC_FIELD_VALID(static_info, n_shared_cores))
       add_extra_info_item(items, &count, max_items, "NSHC", static_info->n_shared_cores, "");
@@ -539,37 +544,36 @@ static unsigned collect_extra_info(const struct gpu_info *device, const nvtop_in
   return count;
 }
 
-// How many fields a device reports is only known once it has been refreshed at
-// least once, which happens after the windows are first laid out, so the
-// reserved rows are revisited on every draw. A device that reports none costs
-// no row at all, which is the usual case outside NVIDIA.
+// Refresh can discover more clock fields; resize the card width, keeping -X rows separate.
 static void update_extra_info_rows(struct list_head *devices, struct nvtop_interface *interface) {
   unsigned rows_needed = 0;
+  unsigned detailed_cols = DETAILED_DEVICE_COLS;
   const unsigned char option_sig =
       (interface->options.has_gpu_info_bar ? 1u : 0u) | (interface->options.has_all_info_bar ? 2u : 0u);
   const bool options_changed = option_sig != interface->extra_info_option_sig;
 
-  if (interface->options.has_gpu_info_bar || interface->options.has_all_info_bar) {
-    struct extra_info_item items[MAX_EXTRA_INFO_ITEMS];
-    struct gpu_info *device;
-    unsigned most_fields = 0;
-    list_for_each_entry(device, devices, list) {
-      unsigned visible = collect_extra_info(device, &interface->options, items, MAX_EXTRA_INFO_ITEMS);
-      most_fields = max(most_fields, visible);
-    }
-    rows_needed = (most_fields + EXTRA_INFO_PER_ROW - 1) / EXTRA_INFO_PER_ROW;
-    // A driver that fails one read should not make the whole interface jump:
-    // while the options stay the same rows only ever grow. An option change is
-    // allowed to give rows back.
-    if (!options_changed)
-      rows_needed = max(rows_needed, interface->extra_info_rows);
+  struct extra_info_item items[MAX_EXTRA_INFO_ITEMS];
+  struct gpu_info *device;
+  unsigned most_fields = 0;
+  list_for_each_entry(device, devices, list) {
+    unsigned visible = collect_extra_info(device, &interface->options, items, MAX_EXTRA_INFO_ITEMS);
+    most_fields = max(most_fields, visible);
+    unsigned primary_fields = collect_primary_info(device, &interface->options, items, MAX_EXTRA_INFO_ITEMS);
+    detailed_cols = max(detailed_cols, 64 + primary_fields * PRIMARY_INFO_COLS +
+        (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm) ? 12 : 0));
+  }
+  rows_needed = (most_fields + EXTRA_INFO_PER_ROW - 1) / EXTRA_INFO_PER_ROW;
+  // A failed read must not make the whole layout jump; only option changes give space back.
+  if (!options_changed) {
+    rows_needed = max(rows_needed, interface->extra_info_rows);
+    detailed_cols = max(detailed_cols, interface->detailed_header_cols);
   }
 
   int rows, cols;
   getmaxyx(stdscr, rows, cols);
-  unsigned link_rows = link_rows_for_layout(interface->monitored_dev_count, rows, cols, rows_needed,
-                                           interface->options.has_gpu_info_bar);
-  if (rows_needed == interface->extra_info_rows && link_rows == interface->link_info_rows && !options_changed)
+  unsigned header_cols = device_length(interface->monitored_dev_count, rows, cols, rows_needed, detailed_cols,
+                                      interface->options.has_gpu_info_bar);
+  if (rows_needed == interface->extra_info_rows && header_cols == interface->device_header_cols && !options_changed)
     return;
 
   // Laying the windows out again closes the setup window, so a change made from
@@ -578,6 +582,7 @@ static void update_extra_info_rows(struct list_head *devices, struct nvtop_inter
     return;
 
   interface->extra_info_rows = rows_needed;
+  interface->detailed_header_cols = detailed_cols;
   interface->extra_info_option_sig = option_sig;
   erase();
   refresh();
@@ -614,7 +619,7 @@ static void format_link_rate(char *text, size_t size, const char *direction, boo
 }
 
 #define LINK_INFO_CELL_SIZE 64
-static void format_link_info(const struct gpuinfo_dynamic_info *info, char cells[LINK_INFO_ROWS * 2][LINK_INFO_CELL_SIZE]) {
+static void format_link_info(const struct gpuinfo_dynamic_info *info, char cells[LINK_INFO_FIELDS][LINK_INFO_CELL_SIZE]) {
   snprintf(cells[0], LINK_INFO_CELL_SIZE, "PCIe N/A");
   if (GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_link_gen) && GPUINFO_DYNAMIC_FIELD_VALID(info, pcie_link_width))
     snprintf(cells[0], LINK_INFO_CELL_SIZE, "PCIe GEN%u@%ux", info->pcie_link_gen, info->pcie_link_width);
@@ -647,19 +652,57 @@ static void fit_link_cell(char *text, unsigned columns) {
     strcpy(text + columns - 3, "...");
 }
 
+static void draw_header_field(WINDOW *win, unsigned column, unsigned width, const char *value) {
+  char text[1024];
+  snprintf(text, sizeof(text), "%.*s", (int)sizeof(text) - 1, value);
+  fit_link_cell(text, width - 1);
+  mvwaddnstr(win, 0, column, text, width - 1);
+}
+
 static void draw_devices(struct list_head *devices, struct nvtop_interface *interface) {
   struct gpu_info *device;
   unsigned dev_id = 0;
   list_for_each_entry(device, devices, list) {
     struct device_window *dev = &interface->devices_win[dev_id];
+    bool detailed = interface->device_header_cols >= DETAILED_DEVICE_COLS;
+    char buff[1024];
     werase(dev->name_win);
     wcolor_set(dev->name_win, cyan_color, NULL);
-    mvwprintw(dev->name_win, 0, 0, "NPU %-2u", device->device_id);
+    snprintf(buff, sizeof(buff), "NPU %-2u [%s]", device->device_id,
+             GPUINFO_STATIC_FIELD_VALID(&device->static_info, device_name) ? device->static_info.device_name : "N/A");
+    draw_header_field(dev->name_win, 0, detailed ? 24 : getmaxx(dev->name_win), buff);
     wstandend(dev->name_win);
-    wprintw(dev->name_win, " [%s]", GPUINFO_STATIC_FIELD_VALID(&device->static_info, device_name)
-              ? device->static_info.device_name : "N/A");
+    werase(dev->metadata);
+    if (detailed) {
+      char cells[LINK_INFO_FIELDS][LINK_INFO_CELL_SIZE];
+      format_link_info(&device->dynamic_info, cells);
+      draw_header_field(dev->name_win, 24, 14, cells[0]);
+      draw_header_field(dev->name_win, 38, 13, cells[2]);
+      draw_header_field(dev->name_win, 51, 13, cells[3]);
+      draw_header_field(dev->metadata, 0, 12, cells[1]);
+      snprintf(buff, sizeof(buff), "%s %s", cells[4], cells[5]);
+      if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, hccs_healthy) && !device->dynamic_info.hccs_healthy)
+        wcolor_set(dev->metadata, warning_color, NULL);
+      draw_header_field(dev->metadata, 12, 13, buff);
+      wstandend(dev->metadata);
+      draw_header_field(dev->metadata, 25, 14, cells[6]);
+      draw_header_field(dev->metadata, 39, 14, cells[7]);
+      struct extra_info_item primary_items[MAX_EXTRA_INFO_ITEMS];
+      unsigned primary_count = collect_primary_info(device, &interface->options, primary_items, MAX_EXTRA_INFO_ITEMS);
+      for (unsigned i = 0; i < primary_count; ++i) {
+        snprintf(buff, sizeof(buff), "%s %s", primary_items[i].name, primary_items[i].value);
+        draw_header_field(dev->name_win, 64 + i * PRIMARY_INFO_COLS, PRIMARY_INFO_COLS, buff);
+      }
+      if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm)) {
+        snprintf(buff, sizeof(buff), "FAN %uRPM", device->dynamic_info.fan_rpm);
+        draw_header_field(dev->name_win, 64 + primary_count * PRIMARY_INFO_COLS, 12, buff);
+      }
+    } else if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm)) {
+      snprintf(buff, sizeof(buff), "FAN %uRPM", device->dynamic_info.fan_rpm);
+      draw_header_field(dev->metadata, 0, getmaxx(dev->metadata), buff);
+    }
     wnoutrefresh(dev->name_win);
-    char buff[1024];
+    wnoutrefresh(dev->metadata);
     if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, gpu_util_rate)) {
       snprintf(buff, sizeof(buff), "%u%%", device->dynamic_info.gpu_util_rate);
       draw_percentage_meter(dev->gpu_util_no_enc_and_dec, "NPU", device->dynamic_info.gpu_util_rate, buff);
@@ -691,28 +734,6 @@ static void draw_devices(struct list_head *devices, struct nvtop_interface *inte
     else
       mvwprintw(dev->power_info, 0, 0, " POW N/A");
     wnoutrefresh(dev->power_info);
-    werase(dev->fan_speed);
-    if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm))
-      mvwprintw(dev->fan_speed, 0, 0, "FAN %uRPM", device->dynamic_info.fan_rpm);
-    else
-      mvwprintw(dev->fan_speed, 0, 0, "FAN N/A");
-    wnoutrefresh(dev->fan_speed);
-    char link_cells[LINK_INFO_ROWS * 2][LINK_INFO_CELL_SIZE];
-    format_link_info(&device->dynamic_info, link_cells);
-    for (unsigned row = 0; row < interface->link_info_rows; ++row) {
-      WINDOW *win = dev->link_info[row];
-      unsigned half = getmaxx(win) / 2;
-      fit_link_cell(link_cells[row * 2], half - 1);
-      fit_link_cell(link_cells[row * 2 + 1], getmaxx(win) - half);
-      werase(win);
-      mvwaddnstr(win, 0, 0, link_cells[row * 2], half - 1);
-      if (row == 2 && GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, hccs_healthy) &&
-          !device->dynamic_info.hccs_healthy)
-        wcolor_set(win, warning_color, NULL);
-      mvwaddnstr(win, 0, half, link_cells[row * 2 + 1], getmaxx(win) - half);
-      wstandend(win);
-      wnoutrefresh(win);
-    }
     struct extra_info_item extra_items[MAX_EXTRA_INFO_ITEMS];
     unsigned extra_count = collect_extra_info(device, &interface->options, extra_items, MAX_EXTRA_INFO_ITEMS);
     for (unsigned i = 0; i < MAX_EXTRA_INFO_ITEMS && dev->extra_info[i]; ++i) {

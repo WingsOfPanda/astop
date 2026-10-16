@@ -181,10 +181,10 @@ def check_visible_layout():
         return subprocess.run(["tmux", "-S", str(LOGS / "tmux.sock"), "-f", "/dev/null", *args],
                               env=ENV, capture_output=True, text=True, timeout=5, check=check).stdout
 
-    def wait_visible(expected, label):
+    def wait_visible(expected, label, target="layout"):
         deadline = time.monotonic() + 15
         while True:
-            screen = tmux("capture-pane", "-p", "-t", "layout")
+            screen = tmux("capture-pane", "-p", "-t", target)
             (LOGS / f"screen-{label}.txt").write_text(screen)
             visible = set(re.findall(r"\bNPU\s+([0-7])\b", screen))
             if visible == set(expected):
@@ -192,33 +192,55 @@ def check_visible_layout():
             assert time.monotonic() < deadline, f"{label}: visible device IDs {sorted(visible)}"
             time.sleep(0.1)
 
-    def check_cards(screen, columns, details):
+    def check_cards(screen, columns, details, clocks=False):
         lines = screen.splitlines()
         headers = [(row, match.start(), match[1]) for row, line in enumerate(lines)
                    for match in re.finditer(r"\bNPU\s+([0-7])\b", line)]
         assert len(headers) == 8, headers
+        header_rows = sorted({row for row, _, _ in headers})
+        assert all(b - a == 4 for a, b in zip(header_rows, header_rows[1:])), header_rows
         for row, column, device_id in headers:
             right = min((x for y, x, _ in headers if y == row and x > column), default=columns)
             bottom = min((y for y, _, _ in headers if y > row), default=len(lines))
-            card = "\n".join(line[column:right] for line in lines[row:bottom])
-            assert "910B4-1" in card, (device_id, card)
+            card_lines = [line[column:right] for line in lines[row:bottom]]
+            card = "\n".join(card_lines)
+            identity, status, bars = card_lines[:3]
+            assert "910B4-1" in identity, (device_id, card)
+            assert "TEMP " in status and "POW " in status, (device_id, card)
+            assert "NPU[" in bars and "HBM[" in bars, (device_id, card)
             for label in ("PCIe ", "ECC ", "HCCS "):
                 assert (label in card) == details, (device_id, label, card)
             if details:
+                assert re.search(r"PCIe GEN\d+@\d+x", identity), (device_id, card)
+                assert "RX " in identity and "TX " in identity, (device_id, card)
+                assert "ECC " in status and "HCCS " in status, (device_id, card)
+                assert "RX " in status and "TX " in status, (device_id, card)
                 assert len(re.findall(r"\bRX ", card)) == 2, (device_id, card)
                 assert len(re.findall(r"\bTX ", card)) == 2, (device_id, card)
                 assert card.count("MB/ms") == 2, (device_id, card)
+                assert all(not re.match(r"\s*(PCIe|ECC|HCCS|RX|TX)\b", line)
+                           for line in card_lines[3:]), (device_id, card)
+            assert ("MHz" in "\n".join(card_lines[:3])) == clocks, (device_id, card)
+            if clocks:
+                for label in ("NPU", "HBM"):
+                    assert re.search(rf"\b{label}\s+\d+MHz\b", identity), (device_id, card)
+            if right < columns:
+                assert all(line.ljust(columns)[right - 2:right] == "  "
+                           for line in lines[row:row + 3]), (device_id, card)
 
     try:
-        tmux("new-session", "-d", "-s", "layout", "-x", "160", "-y", "50",
+        tmux("new-session", "-d", "-s", "layout", "-x", "320", "-y", "50",
              shlex.join([str(BINARY), "-d", "1"]))
         tmux("set-window-option", "-t", "layout", "remain-on-exit", "on")
-        for columns, rows in ((160, 50), (80, 24)):
-            if columns == 80:
-                tmux("resize-window", "-t", "layout", "-x", str(columns), "-y", str(rows))
+        for columns, rows in ((320, 50), (160, 50), (80, 24)):
+            tmux("resize-window", "-t", "layout", "-x", str(columns), "-y", str(rows))
             assert tmux("display-message", "-p", "-t", "layout", "#{pane_width}x#{pane_height}").strip() == f"{columns}x{rows}"
             screen = wait_visible("01234567", f"{columns}x{rows}")
-            check_cards(screen, columns, details=columns == 160)
+            check_cards(screen, columns, details=columns >= 160)
+        tmux("new-session", "-d", "-s", "clocks", "-x", "320", "-y", "50",
+             shlex.join(["env", f"XDG_CONFIG_HOME={LOGS / 'config-clocks'}", str(BINARY), "-d", "1", "-i"]))
+        check_cards(wait_visible("01234567", "320x50-clocks", "clocks"), 320, details=True, clocks=True)
+        tmux("kill-session", "-t", "clocks")
         tmux("send-keys", "-t", "layout", "F2", "Down", "Down", "Down", "Down", "Right", "Enter", "F2")
         wait_visible("1234567", "device0-disabled")
         tmux("send-keys", "-t", "layout", "F12", "q")
@@ -255,7 +277,7 @@ def main():
             check_terminal(columns, rows)
             print(f"PASS terminal {columns}x{rows}, F2/F6/F9/F12, q", flush=True)
         check_visible_layout()
-        print("PASS eight complete detail cards at 160x50, compact cards at 80x24, resize, saved device selection reload", flush=True)
+        print("PASS three-row detail cards at 320x50/160x50, clocks at 320x50, compact cards at 80x24, resize, saved device selection reload", flush=True)
     finally:
         assert real_settings() == before, "real user settings changed"
     print("PASS real user settings unchanged", flush=True)
