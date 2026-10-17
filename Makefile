@@ -28,11 +28,13 @@ install: build/astop
 clean:
 	rm -rf build
 
-test: build/astop build/test_core build/test_ui_history build/test_ui_layout build/test_core_empty_dcmi.so build/test_hccs build/test_ui_links
+test: build/astop build/test_core build/test_ui_history build/test_ui_layout build/test_ui_cards build/test_core_empty_dcmi.so build/test_hccs build/test_hccs_legacy build/test_ui_links
 	build/test_core
 	build/test_ui_history
 	build/test_ui_layout
+	build/test_ui_cards
 	build/test_hccs
+	build/test_hccs_legacy
 	build/test_ui_links
 	test "$$(LD_PRELOAD=$(CURDIR)/build/test_core_empty_dcmi.so build/astop -s)" = '[]'
 
@@ -45,19 +47,26 @@ build/test_core: tests/test_core.c build/extract_gpuinfo.o build/get_process_inf
 build/test_ui_history: tests/test_ui_history.c build/interface_ring_buffer.o build/plot.o | build
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(shell pkg-config --libs ncursesw) -lm
 
-build/test_ui_layout: tests/test_ui_layout.c build/interface_layout_selection.o build/interface_options.o build/ini.o | build
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ -lm
+build/test_ui_layout: tests/test_ui_layout.c build/interface_layout_selection.o build/device_card.o build/interface_options.o build/ini.o | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(shell pkg-config --libs ncursesw) -lm
 
-build/test_ui_links: tests/test_ui_links.c src/interface.c src/interface_layout_selection.c include/nvtop/extract_gpuinfo_common.h | build
-	$(CC) $(CPPFLAGS) $(CFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -o $@ $< src/interface_layout_selection.c $(shell pkg-config --libs ncursesw) -lm
+build/test_ui_links: tests/test_ui_links.c src/interface.c src/device_card.c src/interface_layout_selection.c include/nvtop/extract_gpuinfo_common.h include/nvtop/device_card.h include/nvtop/interface_internal_common.h | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -o $@ $< src/interface.c src/device_card.c src/interface_layout_selection.c $(shell pkg-config --libs ncursesw) -lm
+
+build/test_ui_cards: tests/test_ui_cards.c src/interface.c src/device_card.c src/interface_layout_selection.c src/interface_setup_win.c src/interface_options.c src/interface_ring_buffer.c src/plot.c src/ini.c src/time.c $(wildcard include/nvtop/*.h) | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -o $@ $< src/interface.c src/device_card.c src/interface_layout_selection.c src/interface_setup_win.c src/interface_options.c src/interface_ring_buffer.c src/plot.c src/ini.c src/time.c $(shell pkg-config --libs ncursesw) -lm
 
 build/test_core_empty_dcmi.so: tests/test_core_empty_dcmi.c | build
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared -fPIC -o $@ $<
 
-test-hccs: build/test_hccs
+test-hccs: build/test_hccs build/test_hccs_legacy
 	build/test_hccs
+	build/test_hccs_legacy
 
-build/test_hccs: tests/test_hccs.c src/extract_gpuinfo_ascend.c include/ascend/dcmi_interface_api.h include/nvtop/extract_gpuinfo_common.h build/extract_gpuinfo.o build/get_process_info_linux.o build/time.o | build
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $< build/extract_gpuinfo.o build/get_process_info_linux.o build/time.o -lm -ldcmi
+build/test_hccs: tests/test_hccs.c src/ascend_link_sampling.c src/time.c include/ascend/link_sampling.h include/ascend/dcmi_interface_api.h include/nvtop/extract_gpuinfo_common.h include/nvtop/time.h | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< src/ascend_link_sampling.c src/time.c -lm
+
+build/test_hccs_legacy: tests/test_hccs.c src/ascend_link_sampling.c src/time.c include/ascend/link_sampling.h include/ascend/dcmi_interface_api.h include/nvtop/extract_gpuinfo_common.h include/nvtop/time.h | build
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DASCEND_TEST_LEGACY_ONLY -o $@ $< src/ascend_link_sampling.c src/time.c -lm
 
 -include $(OBJECTS:.o=.d)

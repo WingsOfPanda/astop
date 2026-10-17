@@ -28,6 +28,7 @@
 #include <time.h>
 
 #include "ascend/dcmi_interface_api.h"
+#include "ascend/link_sampling.h"
 #include "list.h"
 #include "nvtop/common.h"
 #include "nvtop/extract_gpuinfo_common.h"
@@ -36,11 +37,6 @@
 #define DCMI_SUCCESS 0
 #define MAX_PROC_NUM 64
 #define PROC_ALLOC_INC 16
-#define ASCEND_PROF_DATA_NUM 3
-
-/* PCIe profiling is optional and may block inside the driver. Keep its
- * sampling short and reuse the last value between samples. */
-#define ASCEND_PCIE_PROFILING_TIME_MS 100
 #define ASCEND_RATED_POWER_MIN_MW 150000U
 #define ASCEND_RATED_POWER_MAX_MW 600000U
 #ifndef ASCEND_PCIE_QUERY_INTERVAL_SEC
@@ -66,20 +62,10 @@ struct gpu_info_ascend {
   int device_id;
   int logical_id;
   bool logical_id_valid;
-  time_t last_pcie_query;
-  unsigned pcie_rx;
-  unsigned pcie_tx;
-  unsigned long long pcie_rx_mb_per_ms;
-  unsigned long long pcie_tx_mb_per_ms;
-  bool pcie_bandwidth_valid;
+  struct ascend_link_sampler link_sampler;
   time_t last_power_limit_query;
   unsigned power_draw_max;
   bool power_draw_max_valid;
-  unsigned hccs_port_mask;
-  unsigned long long hccs_rx[DCMI_HCCS_MAX_PCS_NUM];
-  unsigned long long hccs_tx[DCMI_HCCS_MAX_PCS_NUM];
-  nvtop_time hccs_timestamp;
-  bool hccs_baseline_valid;
 };
 
 static int last_dcmi_return_status = DCMI_SUCCESS;
@@ -643,124 +629,6 @@ static void ascend_refresh_pcie_link(struct gpu_info *gpu_info, struct gpuinfo_d
   }
 }
 
-static void ascend_update_hccs_rates(struct gpu_info_ascend *gpu, struct gpuinfo_dynamic_info *dynamic_info,
-                                     const struct dcmi_hccs_statistic_info_u64 *stats, unsigned port_mask,
-                                     nvtop_time now) {
-  double elapsed = nvtop_difftime(gpu->hccs_timestamp, now);
-  bool valid = gpu->hccs_baseline_valid && port_mask && port_mask == gpu->hccs_port_mask && elapsed > 0.;
-  double rx_flits = 0.;
-  double tx_flits = 0.;
-  RESET_GPUINFO_DYNAMIC(dynamic_info, hccs_rx_bytes_per_second);
-  RESET_GPUINFO_DYNAMIC(dynamic_info, hccs_tx_bytes_per_second);
-  for (unsigned port = 0; port < DCMI_HCCS_MAX_PCS_NUM; ++port) {
-    if (!(port_mask & (1u << port)))
-      continue;
-    if (stats->rx_cnt[port] < gpu->hccs_rx[port] || stats->tx_cnt[port] < gpu->hccs_tx[port])
-      valid = false;
-    if (valid) {
-      rx_flits += stats->rx_cnt[port] - gpu->hccs_rx[port];
-      tx_flits += stats->tx_cnt[port] - gpu->hccs_tx[port];
-    }
-    gpu->hccs_rx[port] = stats->rx_cnt[port];
-    gpu->hccs_tx[port] = stats->tx_cnt[port];
-  }
-  gpu->hccs_port_mask = port_mask;
-  gpu->hccs_timestamp = now;
-  gpu->hccs_baseline_valid = port_mask != 0;
-  if (valid) {
-    /* HCCS counters count 20-byte flits; subtract before converting to double. */
-    SET_GPUINFO_DYNAMIC(dynamic_info, hccs_rx_bytes_per_second, rx_flits * 20. / elapsed);
-    SET_GPUINFO_DYNAMIC(dynamic_info, hccs_tx_bytes_per_second, tx_flits * 20. / elapsed);
-  }
-}
-
-static void ascend_refresh_hccs(struct gpu_info_ascend *gpu, struct gpuinfo_dynamic_info *dynamic_info) {
-  struct dcmi_hccs_lane_info lanes = {0};
-  struct dcmi_hccs_statues status = {0};
-  struct dcmi_hccs_statistic_info_u64 stats = {0};
-  unsigned size = sizeof(lanes);
-  RESET_GPUINFO_DYNAMIC(dynamic_info, hccs_links);
-  RESET_GPUINFO_DYNAMIC(dynamic_info, hccs_healthy);
-  RESET_GPUINFO_DYNAMIC(dynamic_info, hccs_rx_bytes_per_second);
-  RESET_GPUINFO_DYNAMIC(dynamic_info, hccs_tx_bytes_per_second);
-  if (ascend_get_device_info(gpu, DCMI_MAIN_CMD_HCCS, DCMI_HCCS_CMD_GET_LANE_INFO, &lanes, &size) != DCMI_SUCCESS ||
-      size < sizeof(lanes.hccs_port_pcs_bitmap))
-    goto unavailable;
-  unsigned port_mask = lanes.hccs_port_pcs_bitmap & ((1u << DCMI_HCCS_MAX_PCS_NUM) - 1u);
-  unsigned links = 0;
-  for (unsigned port = 0; port < DCMI_HCCS_MAX_PCS_NUM; ++port)
-    links += (port_mask >> port) & 1u;
-  SET_GPUINFO_DYNAMIC(dynamic_info, hccs_links, links);
-
-  size = sizeof(status);
-  if (ascend_get_device_info(gpu, DCMI_MAIN_CMD_HCCS, DCMI_HCCS_CMD_GET_STATUS, &status, &size) != DCMI_SUCCESS ||
-      size < offsetof(struct dcmi_hccs_statues, reserve))
-    goto unavailable;
-  SET_GPUINFO_DYNAMIC(dynamic_info, hccs_healthy, status.pcs_status == 0 && (status.hdlc_status & 3u) == 3u);
-  if (!port_mask)
-    goto unavailable;
-
-  size = sizeof(stats);
-  if (ascend_get_device_info(gpu, DCMI_MAIN_CMD_HCCS, DCMI_HCCS_CMD_GET_STATISTIC_INFO_U64, &stats, &size) !=
-          DCMI_SUCCESS ||
-      size < offsetof(struct dcmi_hccs_statistic_info_u64, crc_err_cnt))
-    goto unavailable;
-  nvtop_time now;
-  nvtop_get_current_time(&now);
-  ascend_update_hccs_rates(gpu, dynamic_info, &stats, port_mask, now);
-  return;
-
-unavailable:
-  gpu->hccs_baseline_valid = false;
-}
-
-static unsigned ascend_bandwidth_to_kb_per_second(uint64_t average) {
-  /* shortcut: inherited binary scaling estimates PCIe plot load; verify native MB units before changing it. */
-  if (average > UINT64_MAX / UINT64_C(1024000))
-    return UINT_MAX;
-  average *= UINT64_C(1024000); /* 1024 KiB/MiB * 1000 ms/s */
-  return average > UINT_MAX ? UINT_MAX : (unsigned)average;
-}
-
-static void ascend_refresh_pcie_bandwidth_cache(struct gpu_info_ascend *gpu_info) {
-  time_t now;
-  bool should_query;
-
-  if (!DCMI_SYMBOL_PRESENT(dcmi_get_pcie_link_bandwidth_info) &&
-      !(ascend_use_dcmiv2 && DCMI_SYMBOL_PRESENT(dcmiv2_get_pcie_link_bandwidth_info)))
-    return;
-
-  now = time(NULL);
-  should_query = gpu_info->last_pcie_query == (time_t)0 || now < gpu_info->last_pcie_query ||
-                 (unsigned long long)(now - gpu_info->last_pcie_query) >= ASCEND_PCIE_QUERY_INTERVAL_SEC;
-  if (should_query) {
-    gpu_info->pcie_bandwidth_valid = false;
-    struct dcmi_pcie_link_bandwidth_info bandwidth;
-    memset(&bandwidth, 0, sizeof(bandwidth));
-    bandwidth.profiling_time = ASCEND_PCIE_PROFILING_TIME_MS;
-    if (ascend_use_dcmiv2 && gpu_info->logical_id_valid && DCMI_SYMBOL_PRESENT(dcmiv2_get_pcie_link_bandwidth_info)) {
-      last_dcmi_return_status = dcmiv2_get_pcie_link_bandwidth_info(gpu_info->logical_id, &bandwidth);
-    } else if (ascend_has_legacy_ids(gpu_info) && DCMI_SYMBOL_PRESENT(dcmi_get_pcie_link_bandwidth_info)) {
-      last_dcmi_return_status = dcmi_get_pcie_link_bandwidth_info(gpu_info->card_id, gpu_info->device_id, &bandwidth);
-    } else {
-      return;
-    }
-    gpu_info->last_pcie_query = now;
-    if (last_dcmi_return_status == DCMI_SUCCESS) {
-      /* DCMI arrays are [min, max, average]; preserve their documented MB/ms unit. */
-      gpu_info->pcie_tx_mb_per_ms =
-          (uint64_t)bandwidth.tx_p_bw[ASCEND_PROF_DATA_NUM - 1] + bandwidth.tx_np_bw[ASCEND_PROF_DATA_NUM - 1] +
-          bandwidth.tx_cpl_bw[ASCEND_PROF_DATA_NUM - 1];
-      gpu_info->pcie_rx_mb_per_ms =
-          (uint64_t)bandwidth.rx_p_bw[ASCEND_PROF_DATA_NUM - 1] + bandwidth.rx_np_bw[ASCEND_PROF_DATA_NUM - 1] +
-          bandwidth.rx_cpl_bw[ASCEND_PROF_DATA_NUM - 1];
-      gpu_info->pcie_tx = ascend_bandwidth_to_kb_per_second(gpu_info->pcie_tx_mb_per_ms);
-      gpu_info->pcie_rx = ascend_bandwidth_to_kb_per_second(gpu_info->pcie_rx_mb_per_ms);
-      gpu_info->pcie_bandwidth_valid = true;
-    }
-  }
-}
-
 static void ascend_refresh_fan(struct gpu_info_ascend *gpu_info, struct gpuinfo_dynamic_info *dynamic_info) {
   int fan_count = 0;
   int speed = 0;
@@ -1196,18 +1064,16 @@ static void gpuinfo_ascend_refresh_dynamic_info(struct gpu_info *_gpu_info) {
     SET_GPUINFO_DYNAMIC(dynamic_info, power_draw_max, gpu_info->power_draw_max);
 
   ascend_refresh_ecc(gpu_info, dynamic_info);
-  ascend_refresh_hccs(gpu_info, dynamic_info);
   ascend_refresh_dvpp(gpu_info, dynamic_info);
   ascend_refresh_fan(gpu_info, dynamic_info);
   ascend_refresh_pcie_link(&gpu_info->base, dynamic_info);
 
-  ascend_refresh_pcie_bandwidth_cache(gpu_info);
-  if (gpu_info->pcie_bandwidth_valid) {
-    SET_GPUINFO_DYNAMIC(dynamic_info, pcie_rx, gpu_info->pcie_rx);
-    SET_GPUINFO_DYNAMIC(dynamic_info, pcie_tx, gpu_info->pcie_tx);
-    SET_GPUINFO_DYNAMIC(dynamic_info, pcie_rx_mb_per_ms, gpu_info->pcie_rx_mb_per_ms);
-    SET_GPUINFO_DYNAMIC(dynamic_info, pcie_tx_mb_per_ms, gpu_info->pcie_tx_mb_per_ms);
-  }
+  const struct ascend_link_device link_device = {.card_id = gpu_info->card_id,
+                                                 .device_id = gpu_info->device_id,
+                                                 .logical_id = gpu_info->logical_id,
+                                                 .logical_id_valid = gpu_info->logical_id_valid,
+                                                 .use_dcmiv2 = ascend_use_dcmiv2};
+  ascend_link_sample(&gpu_info->link_sampler, &link_device, dynamic_info, &last_dcmi_return_status);
 }
 
 static void gpuinfo_ascend_get_running_processes(struct gpu_info *_gpu_info) {

@@ -181,7 +181,7 @@ Linux process information.
 ## Development
 
 ```sh
-make test              # focused core, history, layout, and empty-device checks
+make test              # focused core, history, device-card, link-sampling and snapshot checks
 make smoke             # live hardware and terminal integration checks
 ```
 
@@ -189,6 +189,11 @@ The checks require the build prerequisites above. `make smoke` also needs Python
 tmux, and the eight-device 910B4-1 reference configuration. It exercises snapshots,
 terminal resizing, controls, and saved device selection using temporary settings.
 It does not start workloads or signal existing workload processes.
+
+Device-card tests use ncurses with temporary screens to check rendering and layout
+transitions. Link-sampling tests use fake driver readings and controlled time to
+check counter recovery and PCIe cache timing without querying hardware. See the
+[glossary](GLOSSARY.md) for the display and telemetry terms used in the code.
 
 ## Troubleshooting
 

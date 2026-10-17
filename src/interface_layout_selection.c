@@ -1,4 +1,5 @@
 #include "nvtop/interface_layout_selection.h"
+#include "nvtop/device_card.h"
 #include "nvtop/interface.h"
 #include "nvtop/interface_options.h"
 
@@ -230,16 +231,6 @@ static void balance_info_on_stacks_preserving_plot_order(unsigned stack_max_cols
     moving_plot_id--;
   }
 }
-static const unsigned device_header_gutter = 2;
-
-unsigned device_cards_per_row(unsigned devices_count, unsigned min_card_width, unsigned cols) {
-  unsigned per_row = max(1, (cols + device_header_gutter) / (min_card_width + device_header_gutter));
-  unsigned stacks = max(1, (devices_count + per_row - 1) / per_row);
-  if (devices_count % stacks == 0)
-    per_row = devices_count / stacks;
-  return per_row;
-}
-
 void compute_sizes_from_layout(unsigned devices_count, unsigned device_header_rows, unsigned device_header_cols,
                                unsigned rows, unsigned cols, const nvtop_interface_gpu_opts *gpuOpts,
                                process_field_displayed process_displayed, struct window_position *device_positions,
@@ -247,10 +238,9 @@ void compute_sizes_from_layout(unsigned devices_count, unsigned device_header_ro
                                unsigned *map_device_to_plot, struct window_position *process_position,
                                struct window_position *setup_position, bool process_win_hide) {
 
-  unsigned min_rows_for_header = 0, header_stacks = 0, num_device_per_row = 0;
-  num_device_per_row = device_cards_per_row(devices_count, device_header_cols, cols);
-  header_stacks = max(1, devices_count / num_device_per_row + ((devices_count % num_device_per_row) > 0));
-  min_rows_for_header = header_stacks * device_header_rows;
+  unsigned header_stacks = device_cards_place(devices_count, device_header_rows, device_header_cols,
+                                              cols, false, device_positions);
+  unsigned min_rows_for_header = header_stacks * device_header_rows;
 
   unsigned min_rows_for_process =
       process_field_displayed_count(process_displayed) ? min_rows_taken_by_process(rows, devices_count) : 0;
@@ -308,28 +298,8 @@ void compute_sizes_from_layout(unsigned devices_count, unsigned device_header_ro
   balance_info_on_stacks_preserving_plot_order(cols, num_plot_stacks, *num_plots, num_info_per_plot,
                                                cols_allocated_in_stacks, plot_in_stack);
 
-  // Device Information Header
-  unsigned gutter_cols = device_header_gutter * (num_device_per_row - 1);
-  unsigned card_width = (cols - gutter_cols) / num_device_per_row;
-  unsigned left_margin = (cols - gutter_cols - num_device_per_row * card_width) / 2;
-
-  unsigned num_this_row = 0;
-  unsigned headerPosX = left_margin;
-  unsigned headerPosY = 0;
-  for (unsigned i = 0; i < devices_count; ++i) {
-    device_positions[i].posX = headerPosX;
-    device_positions[i].posY = headerPosY;
-    device_positions[i].sizeX = card_width;
-    device_positions[i].sizeY = device_header_rows;
-    num_this_row++;
-    if (num_this_row == num_device_per_row) {
-      headerPosX = left_margin;
-      headerPosY += device_header_rows + space_between_header_stack;
-      num_this_row = 0;
-    } else {
-      headerPosX += card_width + device_header_gutter;
-    }
-  }
+  device_cards_place(devices_count, device_header_rows, device_header_cols, cols,
+                     space_between_header_stack, device_positions);
 
   unsigned rows_left_for_process = 0;
   if (*num_plots > 0) {

@@ -35,12 +35,6 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-// The extra GPU info bar is a generic grid; a cell is just a field with a name
-// and a value, with no assumption about what it represents (a clock domain, a
-// cache size, a core count...). The capacity is independent of any source.
-#define MAX_EXTRA_INFO_ITEMS 16
-#define LINK_INFO_FIELDS 8
-
 enum nvtop_option_window_state {
   nvtop_option_state_hidden,
   nvtop_option_state_sort_by,
@@ -58,18 +52,6 @@ enum interface_color {
   gpu_plot_color_3,
   gpu_plot_color_4,
   selected_color,
-};
-
-struct device_window {
-  WINDOW *name_win; // Name of the GPU
-  WINDOW *gpu_util_no_enc_and_dec;
-  WINDOW *mem_util_no_enc_and_dec;
-  WINDOW *temperature;
-  WINDOW *power_info;
-  WINDOW *metadata;
-  // Generic grid of extra GPU information (clock domains and static specs); each
-  // cell holds one "NAME value" field. Unused slots are NULL.
-  WINDOW *extra_info[MAX_EXTRA_INFO_ITEMS];
 };
 
 static const unsigned int option_window_size = 13;
@@ -125,14 +107,10 @@ struct nvtop_interface {
   nvtop_interface_option options;
   unsigned total_dev_count;
   unsigned monitored_dev_count;
-  struct device_window *devices_win;
+  struct device_cards *cards;
   struct process_window process;
   WINDOW *shortcut_window;
   unsigned num_plots;
-  unsigned extra_info_rows;            // Rows the current layout reserves for the extra GPU info bar
-  unsigned device_header_cols;
-  unsigned detailed_header_cols;
-  unsigned char extra_info_option_sig; // Options the current extra info layout was built for
   bool layout_too_small;
   struct plot_window *plots;
   interface_ring_buffer saved_data_ring;

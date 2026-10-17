@@ -1,4 +1,12 @@
-#include "../src/interface.c"
+#include "nvtop/device_card.h"
+#include "nvtop/interface.h"
+#include "nvtop/interface_internal_common.h"
+
+#include <assert.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 static void check_snapshot_links(struct gpu_info *device, bool populated) {
   LIST_HEAD(devices);
@@ -49,29 +57,30 @@ static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, 
   SCREEN *screen = newterm("xterm-256color", output, input);
   assert(screen);
   assert(resizeterm(rows, cols) == OK);
-  start_color();
   unsigned char colors[MAX_LINES_PER_PLOT] = {0};
-  initialize_colors(colors);
-  struct device_window window;
-  struct nvtop_interface interface = {.devices_win = &window, .options.has_gpu_info_bar = clocks};
-  struct extra_info_item items[MAX_EXTRA_INFO_ITEMS];
-  unsigned primary_count = collect_primary_info(device, &interface.options, items, MAX_EXTRA_INFO_ITEMS);
-  assert(collect_extra_info(device, &interface.options, items, MAX_EXTRA_INFO_ITEMS) == 0);
-  unsigned primary_cols = 64 + primary_count * PRIMARY_INFO_COLS +
-      (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, fan_rpm) ? 12 : 0);
-  interface.device_header_cols = device_length(8, rows, cols, 0, primary_cols, clocks);
-  unsigned per_row = device_cards_per_row(8, interface.device_header_cols, cols);
-  unsigned card_cols = (cols - 2 * (per_row - 1)) / per_row;
-  assert(card_cols >= interface.device_header_cols);
-  unsigned margin = (cols - per_row * card_cols - 2 * (per_row - 1)) / 2;
+  apply_plot_colors(colors);
+  nvtop_interface_gpu_opts gpu_options[8] = {0};
+  nvtop_interface_option options = {.has_gpu_info_bar = clocks, .gpu_specific_opts = gpu_options};
+  struct device_cards *cards = device_cards_create(8);
   LIST_HEAD(devices);
-  list_add_tail(&device->list, &devices);
+  struct gpu_info fixtures[8];
   for (unsigned i = 0; i < 8; ++i) {
-    unsigned x = margin + i % per_row * (card_cols + 2), y = i / per_row * 4;
-    device->device_id = i;
-    alloc_device_window(y, x, card_cols, 0, &window);
-    draw_devices(&devices, &interface);
-    doupdate();
+    fixtures[i] = *device;
+    fixtures[i].device_id = i;
+    list_add_tail(&fixtures[i].list, &devices);
+  }
+  struct device_card_layout layout = device_cards_layout(cards, &devices, &options, rows, cols, false);
+  assert(!layout.too_small && layout.rows == 3);
+  struct window_position positions[8], plots[MAX_CHARTS], process, setup;
+  unsigned plot_count, map[8];
+  compute_sizes_from_layout(8, layout.rows, layout.cols, rows - 1, cols, gpu_options,
+                            process_default_displayed_field(), positions, &plot_count, plots, map,
+                            &process, &setup, false);
+  device_cards_allocate(cards, positions);
+  device_cards_draw(cards, &devices, &options);
+  doupdate();
+  for (unsigned i = 0; i < 8; ++i) {
+    unsigned x = positions[i].posX, y = positions[i].posY, card_cols = positions[i].sizeX;
     char first[512], second[512], bars[512];
     mvwinnstr(curscr, y, x, first, card_cols);
     mvwinnstr(curscr, y + 1, x, second, card_cols);
@@ -79,15 +88,21 @@ static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, 
     assert(strstr(first, "NPU"));
     assert(strstr(second, "TEMP") && strstr(second, "POW"));
     assert(strstr(bars, "NPU[") && strstr(bars, "HBM["));
-    if (interface.device_header_cols >= DETAILED_DEVICE_COLS) {
+    if (layout.cols >= 76) {
       assert(strstr(first, populated ? "PCIe GEN4@16x" : "PCIe N/A"));
       assert(strstr(first, populated ? "RX 123MB/ms" : "RX N/A"));
       assert(strstr(first, populated ? "TX 0MB/ms" : "TX N/A"));
-      assert(strstr(second, populated ? "ECC 1844..." : "ECC N/A/N/A"));
-      assert(strstr(second, populated ? "HCCS 7x WARN" : "HCCS N/A N/A"));
-      assert(strstr(second, populated ? "RX 1.000MiB/s" : "RX N/A"));
+      assert(strstr(second, populated
+          ? (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, ecc_corrected) ? "ECC 1844..." : "ECC N/A/...")
+          : "ECC N/A/N/A"));
+      assert(strstr(second, populated
+          ? (device->dynamic_info.hccs_healthy ? "HCCS 7x OK" : "HCCS 7x WARN") : "HCCS N/A N/A"));
+      const char *rx = "RX N/A";
+      if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, hccs_rx_bytes_per_second))
+        rx = device->dynamic_info.hccs_rx_bytes_per_second >= 1073741824. ? "RX 1.000GiB/s" : "RX 1.000MiB/s";
+      assert(strstr(second, rx));
       assert(strstr(second, populated ? "TX 0.000KiB/s" : "TX N/A"));
-      if (populated)
+      if (populated && !device->dynamic_info.hccs_healthy)
         assert(PAIR_NUMBER(mvwinch(curscr, y + 1, x + 35)) == warning_color);
       if (clocks) {
         assert(strstr(first, GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, gpu_clock_speed)
@@ -102,15 +117,14 @@ static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, 
     }
     for (unsigned col = 0; col < card_cols; ++col)
       assert((mvwinch(curscr, y + 3, x + col) & A_CHARTEXT) == ' ');
-    if (i % per_row) {
+    if (i && positions[i - 1].posY == y) {
       for (unsigned row = y; row < y + 3; ++row) {
         assert((mvwinch(curscr, row, x - 1) & A_CHARTEXT) == ' ');
         assert((mvwinch(curscr, row, x - 2) & A_CHARTEXT) == ' ');
       }
     }
-    free_device_windows(&window);
   }
-  list_del(&device->list);
+  device_cards_destroy(cards);
   endwin();
   delscreen(screen);
   fclose(input);
@@ -118,25 +132,8 @@ static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, 
 }
 
 int main(void) {
-  assert(device_length(8, 24, 80, 0, 76, false) == 38);
-  assert(device_length(8, 50, 160, 0, 76, false) == 76);
-  assert(device_length(8, 50, 312, 0, 76, false) == 76);
-  assert(device_length(8, 50, 320, 0, 76, false) == 76);
-  assert(device_length(8, 24, 80, 0, 92, true) == 92);
-  assert(device_length(8, 18, 160, 0, 76, false) == 38);
-
   struct gpu_info device = {0};
   struct gpuinfo_dynamic_info *info = &device.dynamic_info;
-  char cells[LINK_INFO_FIELDS][LINK_INFO_CELL_SIZE];
-  format_link_info(info, cells);
-  assert(!strcmp(cells[0], "PCIe N/A"));
-  assert(!strcmp(cells[1], "ECC N/A/N/A"));
-  assert(!strcmp(cells[2], "RX N/A"));
-  assert(!strcmp(cells[3], "TX N/A"));
-  assert(!strcmp(cells[4], "HCCS N/A"));
-  assert(!strcmp(cells[5], "N/A"));
-  assert(!strcmp(cells[6], "RX N/A"));
-  assert(!strcmp(cells[7], "TX N/A"));
   check_snapshot_links(&device, false);
   check_render(&device, 80, 24, false, false);
   check_render(&device, 160, 50, false, false);
@@ -152,15 +149,6 @@ int main(void) {
   SET_GPUINFO_DYNAMIC(info, hccs_healthy, false);
   SET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second, 1048576.);
   SET_GPUINFO_DYNAMIC(info, hccs_tx_bytes_per_second, 0.);
-  format_link_info(info, cells);
-  assert(!strcmp(cells[0], "PCIe GEN4@16x"));
-  assert(!strcmp(cells[1], "ECC 18446744073709551615/4294967296"));
-  assert(!strcmp(cells[2], "RX 123MB/ms"));
-  assert(!strcmp(cells[3], "TX 0MB/ms"));
-  assert(!strcmp(cells[4], "HCCS 7x"));
-  assert(!strcmp(cells[5], "WARN"));
-  assert(!strcmp(cells[6], "RX 1.000MiB/s"));
-  assert(!strcmp(cells[7], "TX 0.000KiB/s"));
   check_snapshot_links(&device, true);
   check_render(&device, 160, 50, false, true);
   check_render(&device, 312, 50, false, true);
@@ -171,27 +159,12 @@ int main(void) {
   SET_GPUINFO_DYNAMIC(info, fan_rpm, 4321);
   check_render(&device, 320, 50, true, true);
   check_render(&device, 312, 50, false, true);
-  fit_link_cell(cells[1], 18);
-  assert(strlen(cells[1]) == 18);
-  assert(!strncmp(cells[1], "ECC 18446744073", 15));
-  assert(!strcmp(cells[1] + 15, "..."));
-  fit_link_cell(cells[0], strlen(cells[0]));
-  assert(!strcmp(cells[0], "PCIe GEN4@16x"));
-  fit_link_cell(cells[0], LINK_INFO_CELL_SIZE);
-  assert(!strcmp(cells[0], "PCIe GEN4@16x"));
-  fit_link_cell(cells[0], 3);
-  assert(!strcmp(cells[0], "..."));
-
   SET_GPUINFO_DYNAMIC(info, hccs_healthy, true);
   SET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second, 1073741824.);
-  format_link_info(info, cells);
-  assert(!strcmp(cells[5], "OK"));
-  assert(!strcmp(cells[6], "RX 1.000GiB/s"));
+  check_render(&device, 312, 50, false, true);
   RESET_GPUINFO_DYNAMIC(info, ecc_corrected);
   RESET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second);
-  format_link_info(info, cells);
-  assert(!strcmp(cells[1], "ECC N/A/4294967296"));
-  assert(!strcmp(cells[6], "RX N/A"));
+  check_render(&device, 312, 50, false, true);
   puts("UI links: missing values, native PCIe units, ECC width, HCCS scales and layout fallback passed");
   return 0;
 }

@@ -13,8 +13,6 @@ struct window_position {
 // Should be fine
 #define MAX_CHARTS 64
 
-unsigned device_cards_per_row(unsigned devices_count, unsigned min_card_width, unsigned cols);
-
 void compute_sizes_from_layout(unsigned monitored_dev_count, unsigned device_header_rows, unsigned device_header_cols,
                                unsigned rows, unsigned cols, const nvtop_interface_gpu_opts *gpu_opts,
                                process_field_displayed process_field_displayed,
