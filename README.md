@@ -49,6 +49,27 @@ do not require an interactive terminal.
 
 ## Quick start
 
+### Install the ARM64 release
+
+The prebuilt package targets Ubuntu 24.04 ARM64 with Ascend driver 26.1.1 at
+`/usr/local/Ascend/driver/lib64/driver`. Install the runtime libraries and Ascend
+driver described above, then:
+
+```sh
+curl -fLO https://github.com/WingsOfPanda/astop/releases/download/v0.1.0/astop-v0.1.0-linux-arm64.tar.gz
+curl -fLO https://github.com/WingsOfPanda/astop/releases/download/v0.1.0/SHA256SUMS
+sha256sum --check --ignore-missing SHA256SUMS
+tar -xzf astop-v0.1.0-linux-arm64.tar.gz
+install -Dm755 astop-v0.1.0-linux-arm64/bin/astop "$HOME/.local/bin/astop"
+export PATH="$HOME/.local/bin:$PATH"
+astop
+```
+
+The [release page](https://github.com/WingsOfPanda/astop/releases/tag/v0.1.0)
+also includes the matching source archive. Driver libraries are not bundled.
+
+### Build from source
+
 You need Linux, a C compiler, Make, pkg-config, ncurses development files, and an
 installed Ascend driver providing `libdcmi`. On Ubuntu:
 
