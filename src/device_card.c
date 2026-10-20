@@ -33,7 +33,8 @@
 #define MAX_EXTRA_INFO_ITEMS 16
 #define LINK_INFO_FIELDS 8
 #define COMPACT_DEVICE_COLS 38
-#define DETAILED_DEVICE_COLS 76
+#define DETAILED_DEVICE_COLS 82
+#define HCCS_RATE_COLS 17
 #define PRIMARY_INFO_COLS 14
 
 struct device_window {
@@ -417,8 +418,8 @@ void device_cards_draw(struct device_cards *cards, struct list_head *devices, co
         wcolor_set(dev->metadata, warning_color, NULL);
       draw_header_field(dev->metadata, 12, 13, buff);
       wstandend(dev->metadata);
-      draw_header_field(dev->metadata, 25, 14, cells[6]);
-      draw_header_field(dev->metadata, 39, 14, cells[7]);
+      draw_header_field(dev->metadata, 25, HCCS_RATE_COLS, cells[6]);
+      draw_header_field(dev->metadata, 25 + HCCS_RATE_COLS, HCCS_RATE_COLS, cells[7]);
       struct extra_info_item primary_items[MAX_EXTRA_INFO_ITEMS];
       unsigned primary_count = collect_primary_info(device, options, primary_items, MAX_EXTRA_INFO_ITEMS);
       for (unsigned i = 0; i < primary_count; ++i) {
