@@ -51,7 +51,8 @@ static void check_snapshot_links(struct gpu_info *device, bool populated) {
   list_del(&device->list);
 }
 
-static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, bool clocks, bool populated) {
+static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, bool clocks, bool populated,
+                         const char *rx, const char *tx) {
   FILE *output = tmpfile(), *input = tmpfile();
   assert(output && input);
   SCREEN *screen = newterm("xterm-256color", output, input);
@@ -97,11 +98,9 @@ static void check_render(struct gpu_info *device, unsigned cols, unsigned rows, 
           : "ECC N/A/N/A"));
       assert(strstr(second, populated
           ? (device->dynamic_info.hccs_healthy ? "HCCS 7x OK" : "HCCS 7x WARN") : "HCCS N/A N/A"));
-      const char *rx = "RX N/A";
-      if (GPUINFO_DYNAMIC_FIELD_VALID(&device->dynamic_info, hccs_rx_bytes_per_second))
-        rx = device->dynamic_info.hccs_rx_bytes_per_second >= 1073741824. ? "RX 1.000GiB/s" : "RX 1.000MiB/s";
       assert(strstr(second, rx));
-      assert(strstr(second, populated ? "TX 0.000KiB/s" : "TX N/A"));
+      assert(strstr(second, tx));
+      assert(!strstr(strstr(second, "RX "), "..."));
       if (populated && !device->dynamic_info.hccs_healthy)
         assert(PAIR_NUMBER(mvwinch(curscr, y + 1, x + 35)) == warning_color);
       if (clocks) {
@@ -135,9 +134,9 @@ int main(void) {
   struct gpu_info device = {0};
   struct gpuinfo_dynamic_info *info = &device.dynamic_info;
   check_snapshot_links(&device, false);
-  check_render(&device, 80, 24, false, false);
-  check_render(&device, 160, 50, false, false);
-  check_render(&device, 320, 50, true, false);
+  check_render(&device, 80, 24, false, false, "RX N/A", "TX N/A");
+  check_render(&device, 160, 50, false, false, "RX N/A", "TX N/A");
+  check_render(&device, 320, 50, true, false, "RX N/A", "TX N/A");
 
   SET_GPUINFO_DYNAMIC(info, pcie_link_gen, 4);
   SET_GPUINFO_DYNAMIC(info, pcie_link_width, 16);
@@ -150,21 +149,42 @@ int main(void) {
   SET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second, 1048576.);
   SET_GPUINFO_DYNAMIC(info, hccs_tx_bytes_per_second, 0.);
   check_snapshot_links(&device, true);
-  check_render(&device, 160, 50, false, true);
-  check_render(&device, 312, 50, false, true);
-  check_render(&device, 320, 50, false, true);
-  check_render(&device, 320, 50, true, true);
+  check_render(&device, 160, 50, false, true, "RX 1.000MiB/s", "TX 0.000KiB/s");
+  check_render(&device, 312, 50, false, true, "RX 1.000MiB/s", "TX 0.000KiB/s");
+  check_render(&device, 320, 50, false, true, "RX 1.000MiB/s", "TX 0.000KiB/s");
+  check_render(&device, 320, 50, true, true, "RX 1.000MiB/s", "TX 0.000KiB/s");
   SET_GPUINFO_DYNAMIC(info, gpu_clock_speed, 1234);
   SET_GPUINFO_DYNAMIC(info, mem_clock_speed, 1600);
   SET_GPUINFO_DYNAMIC(info, fan_rpm, 4321);
-  check_render(&device, 320, 50, true, true);
-  check_render(&device, 312, 50, false, true);
+  check_render(&device, 320, 50, true, true, "RX 1.000MiB/s", "TX 0.000KiB/s");
+  check_render(&device, 312, 50, false, true, "RX 1.000MiB/s", "TX 0.000KiB/s");
   SET_GPUINFO_DYNAMIC(info, hccs_healthy, true);
   SET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second, 1073741824.);
-  check_render(&device, 312, 50, false, true);
+  check_render(&device, 312, 50, false, true, "RX 1.000GiB/s", "TX 0.000KiB/s");
+
+  SET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second, 828.974 * 1048576.);
+  SET_GPUINFO_DYNAMIC(info, hccs_tx_bytes_per_second, 831.416 * 1048576.);
+  check_render(&device, 160, 50, false, true, "RX 828.974MiB/s", "TX 831.416MiB/s");
+  check_render(&device, 312, 50, false, true, "RX 828.974MiB/s", "TX 831.416MiB/s");
+  check_render(&device, 320, 50, true, true, "RX 828.974MiB/s", "TX 831.416MiB/s");
+  const struct {
+    double scale;
+    const char *rx, *tx;
+  } boundary_rates[] = {
+      {1024., "RX 1023.999KiB/s", "TX 1.000MiB/s"},
+      {1048576., "RX 1023.999MiB/s", "TX 1.000GiB/s"},
+      {1073741824., "RX 1023.999GiB/s", "TX 1024.000GiB/s"}};
+  for (unsigned i = 0; i < ARRAY_SIZE(boundary_rates); ++i) {
+    SET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second, 1023.999 * boundary_rates[i].scale);
+    SET_GPUINFO_DYNAMIC(info, hccs_tx_bytes_per_second, 1024. * boundary_rates[i].scale);
+    check_render(&device, 160, 50, false, true, boundary_rates[i].rx, boundary_rates[i].tx);
+    check_render(&device, 320, 50, false, true, boundary_rates[i].rx, boundary_rates[i].tx);
+  }
+
   RESET_GPUINFO_DYNAMIC(info, ecc_corrected);
   RESET_GPUINFO_DYNAMIC(info, hccs_rx_bytes_per_second);
-  check_render(&device, 312, 50, false, true);
+  SET_GPUINFO_DYNAMIC(info, hccs_tx_bytes_per_second, 0.);
+  check_render(&device, 312, 50, false, true, "RX N/A", "TX 0.000KiB/s");
   puts("UI links: missing values, native PCIe units, ECC width, HCCS scales and layout fallback passed");
   return 0;
 }

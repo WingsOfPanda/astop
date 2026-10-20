@@ -49,6 +49,10 @@ int main(void) {
   check_layout(321, 50, 4, 76);
   check_layout(320, 50, 3, 92);
   check_layout(160, 50, 1, 92);
+  check_layout(160, 50, 1, 82);
+  check_layout(312, 50, 3, 82);
+  check_layout(320, 50, 3, 82);
+  check_layout(334, 50, 4, 82);
   // Re-enter narrower grids after wide layouts, as terminal resize does.
   check_layout(312, 50, 4, 76);
   check_layout(80, 24, 2, 38);

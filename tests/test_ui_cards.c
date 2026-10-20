@@ -12,8 +12,8 @@ static void check_sizing(void) {
   const struct {
     unsigned cols, rows, width;
     bool clocks, too_small;
-  } cases[] = {{80, 24, 38, false, false}, {160, 50, 76, false, false},
-               {312, 50, 76, false, false}, {320, 50, 76, false, false},
+  } cases[] = {{80, 24, 38, false, false}, {160, 50, 82, false, false},
+               {312, 50, 82, false, false}, {320, 50, 82, false, false},
                {80, 24, 92, true, true}, {160, 18, 38, false, false}};
   for (unsigned i = 0; i < ARRAY_SIZE(cases); ++i) {
     struct device_cards *cards = device_cards_create(8);
@@ -96,7 +96,7 @@ static void check_transitions(void) {
   assert(!is_escape_for_quit(interface));
   struct device_card_layout layout =
       device_cards_layout(interface->cards, &devices, &interface->options, 50, 320, true);
-  assert(!layout.changed && layout.rows == 3 && layout.cols == 76);
+  assert(!layout.changed && layout.rows == 3 && layout.cols == 82);
   interface_key(27, interface);
   draw_gpu_info_ncurses(8, &devices, interface);
   assert(is_escape_for_quit(interface));
@@ -135,7 +135,7 @@ static void check_transitions(void) {
   draw_gpu_info_ncurses(8, &devices, interface);
   assert(is_escape_for_quit(interface));
   layout = device_cards_layout(interface->cards, &devices, &interface->options, 50, 312, true);
-  assert(layout.rows == 3 && layout.cols == 76);
+  assert(layout.rows == 3 && layout.cols == 82);
   const unsigned widths[] = {160, 320, 80, 320, 30, 80};
   for (unsigned n = 0; n < ARRAY_SIZE(widths); ++n) {
     unsigned width = widths[n], height = width == 320 ? 50 : 24;
