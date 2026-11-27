@@ -65,7 +65,7 @@ static void alloc_process_with_option(struct nvtop_interface *interface, unsigne
   interface->process.offset_column = 0;
   interface->process.offset = 0;
 
-  interface->process.option_window.option_win = newwin(sizeY, option_window_size, posY, posX);
+  interface->process.option_window.option_win = sizeY ? newwin(sizeY, option_window_size, posY, posX) : NULL;
 
   interface->process.option_window.state = nvtop_option_state_hidden;
   interface->process.option_window.previous_state = nvtop_option_state_sort_by;

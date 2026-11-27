@@ -1,5 +1,4 @@
 #include "nvtop/interface_layout_selection.h"
-#include "nvtop/device_card.h"
 #include "nvtop/interface.h"
 #include "nvtop/interface_options.h"
 
@@ -15,6 +14,50 @@
 
 static unsigned min_rows_taken_by_process(unsigned rows, unsigned num_devices) {
   return 1 + max(5, min(rows / 4, num_devices * 3));
+}
+
+static unsigned cards_per_row(unsigned devices_count, unsigned min_card_width, unsigned cols) {
+  unsigned per_row = max(1, (cols + 2) / (min_card_width + 2));
+  unsigned stacks = max(1, (devices_count + per_row - 1) / per_row);
+  if (devices_count % stacks == 0)
+    per_row = devices_count / stacks;
+  return per_row;
+}
+
+static unsigned card_stacks(unsigned count, unsigned min_cols, unsigned cols) {
+  unsigned per_row = cards_per_row(count, min_cols, cols);
+  return (count + per_row - 1) / per_row;
+}
+
+static void device_cards_place(unsigned count, unsigned card_rows, unsigned min_cols, unsigned cols,
+                                   bool separate_rows, struct window_position *positions) {
+  unsigned per_row = cards_per_row(count, min_cols, cols);
+  unsigned gutter_cols = 2 * (per_row - 1);
+  unsigned width = (cols - gutter_cols) / per_row;
+  unsigned margin = (cols - gutter_cols - per_row * width) / 2;
+  for (unsigned i = 0; i < count; ++i)
+    positions[i] = (struct window_position){.posX = margin + i % per_row * (width + 2),
+        .posY = i / per_row * (card_rows + separate_rows), .sizeX = width, .sizeY = card_rows};
+}
+
+static bool process_table_visible(bool hidden, process_field_displayed fields) {
+  return !hidden && process_field_displayed_count(fields) > 0;
+}
+
+struct device_card_layout fit_device_cards(unsigned count, unsigned card_rows, unsigned compact_cols,
+                                           unsigned detailed_cols, const nvtop_interface_option *options,
+                                           unsigned rows, unsigned cols) {
+  bool processes = process_table_visible(options->hide_processes_list, options->process_fields_displayed);
+  unsigned stacks = card_stacks(count, detailed_cols, cols);
+  unsigned preferred_reserve = 1 + (processes ? min_rows_taken_by_process(rows, count) : 0);
+  unsigned width = detailed_cols;
+  if (!options->has_gpu_info_bar && (cols < width || stacks * card_rows + preferred_reserve > rows)) {
+    width = compact_cols;
+    stacks = card_stacks(count, width, cols);
+  }
+  // Always keep the shortcut row; retain the existing minimum when showing processes.
+  return (struct device_card_layout){.rows = card_rows, .cols = width,
+      .too_small = cols < 40 || cols < width || rows < stacks * card_rows + (processes ? 5 : 1)};
 }
 
 static const unsigned cols_needed_box_drawing = 5;
@@ -238,25 +281,21 @@ void compute_sizes_from_layout(unsigned devices_count, unsigned device_header_ro
                                unsigned *map_device_to_plot, struct window_position *process_position,
                                struct window_position *setup_position, bool process_win_hide) {
 
-  unsigned header_stacks = device_cards_place(devices_count, device_header_rows, device_header_cols,
-                                              cols, false, device_positions);
+  unsigned header_stacks = card_stacks(devices_count, device_header_cols, cols);
   unsigned min_rows_for_header = header_stacks * device_header_rows;
 
-  unsigned min_rows_for_process =
-      process_field_displayed_count(process_displayed) ? min_rows_taken_by_process(rows, devices_count) : 0;
+  bool processes = process_table_visible(process_win_hide, process_displayed);
+  unsigned min_rows_for_process = processes ? min_rows_taken_by_process(rows, devices_count) : 0;
 
   // Not enough room for the header and process
   if (rows < min_rows_for_header + min_rows_for_process) {
-    if (rows >= min_rows_for_header + 2 && process_field_displayed_count(process_displayed)) { // Shrink process
+    if (rows >= min_rows_for_header + 2 && processes) { // Shrink process
       min_rows_for_process = rows - min_rows_for_header;
     } else { // Only header if possible
       min_rows_for_header = rows;
       min_rows_for_process = 0;
     }
   }
-
-  if (process_win_hide)
-    min_rows_for_process = 0;
 
   unsigned rows_for_header = min_rows_for_header;
   unsigned rows_for_process = min_rows_for_process;
@@ -304,7 +343,7 @@ void compute_sizes_from_layout(unsigned devices_count, unsigned device_header_ro
   unsigned rows_left_for_process = 0;
   if (*num_plots > 0) {
     unsigned rows_per_stack = rows_for_plots / num_plot_stacks;
-    if (!process_win_hide && rows_per_stack > 23)
+    if (processes && rows_per_stack > 23)
       rows_per_stack = 23;
     unsigned num_plot_done = 0;
     unsigned currentPosX = 0, currentPosY = rows_for_header;
@@ -334,11 +373,11 @@ void compute_sizes_from_layout(unsigned devices_count, unsigned device_header_ro
       currentPosY += rows_per_stack;
       currentPosX = 0;
     }
-    if (process_field_displayed_count(process_displayed) > 0)
+    if (processes)
       rows_left_for_process = rows_for_plots - rows_per_stack * num_plot_stacks;
   } else {
     // No plot displayed, allocate the leftover space to the processes
-    if (process_field_displayed_count(process_displayed) > 0 && rows_for_plots > 0)
+    if (processes && rows_for_plots > 0)
       rows_for_process += rows_for_plots - 1;
   }
 
