@@ -13,6 +13,16 @@ struct window_position {
 // Should be fine
 #define MAX_CHARTS 64
 
+struct device_card_layout {
+  unsigned rows, cols;
+  bool too_small;
+  bool changed; // Fields or options require rebuilding the active layout.
+};
+
+struct device_card_layout fit_device_cards(unsigned count, unsigned card_rows, unsigned compact_cols,
+                                           unsigned detailed_cols, const nvtop_interface_option *options,
+                                           unsigned rows, unsigned cols);
+
 void compute_sizes_from_layout(unsigned monitored_dev_count, unsigned device_header_rows, unsigned device_header_cols,
                                unsigned rows, unsigned cols, const nvtop_interface_gpu_opts *gpu_opts,
                                process_field_displayed process_field_displayed,

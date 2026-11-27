@@ -17,11 +17,55 @@ static void check_sizing(void) {
                {80, 24, 92, true, true}, {160, 18, 38, false, false}};
   for (unsigned i = 0; i < ARRAY_SIZE(cases); ++i) {
     struct device_cards *cards = device_cards_create(8);
-    nvtop_interface_option options = {.has_gpu_info_bar = cases[i].clocks};
+    nvtop_interface_option options = {.has_gpu_info_bar = cases[i].clocks,
+                                      .process_fields_displayed = process_default_displayed_field()};
     struct device_card_layout layout =
         device_cards_layout(cards, NULL, &options, cases[i].rows, cases[i].cols, false);
     assert(layout.cols == cases[i].width && layout.rows == 3);
     assert(layout.too_small == cases[i].too_small);
+    device_cards_destroy(cards);
+  }
+}
+
+static void check_clock_layout(void) {
+  const struct {
+    unsigned count, rows;
+    bool hide, no_fields, too_small;
+  } cases[] = {
+      {7, 24, true, false, false},
+      {7, 22, true, false, false},
+      {7, 21, true, false, true},
+      {8, 24, true, false, true},
+      {7, 24, false, true, false},
+      {7, 22, false, true, false},
+      {7, 21, false, true, true},
+      {8, 24, false, true, true},
+      {7, 24, false, false, true},
+      {7, 25, false, false, true},
+      {7, 26, false, false, false},
+  };
+  for (unsigned i = 0; i < ARRAY_SIZE(cases); ++i) {
+    struct device_cards *cards = device_cards_create(cases[i].count);
+    nvtop_interface_option options = {.has_gpu_info_bar = true,
+                                      .hide_processes_list = cases[i].hide,
+                                      .process_fields_displayed =
+                                          cases[i].no_fields ? 0 : process_default_displayed_field()};
+    unsigned rows = cases[i].rows;
+    struct device_card_layout layout = device_cards_layout(cards, NULL, &options, rows, 92, false);
+    if (layout.cols != 92 || layout.rows != 3 || layout.too_small != cases[i].too_small) {
+      fprintf(stderr, "-i 92x%u with %u devices (hide=%d, no fields=%d): expected 92x3 cards and too_small=%d; "
+                      "got %ux%u and too_small=%d\n",
+              rows, cases[i].count, cases[i].hide, cases[i].no_fields, cases[i].too_small,
+              layout.cols, layout.rows, layout.too_small);
+      exit(EXIT_FAILURE);
+    }
+    if (cases[i].count == 7 && cases[i].rows == 24) {
+      device_cards_destroy(cards);
+      cards = device_cards_create(7);
+      options.has_gpu_info_bar = false;
+      layout = device_cards_layout(cards, NULL, &options, rows, 92, false);
+      assert(!layout.too_small && layout.cols == (cases[i].hide || cases[i].no_fields ? 82u : 38u));
+    }
     device_cards_destroy(cards);
   }
 }
@@ -167,6 +211,7 @@ static void check_transitions(void) {
 
 int main(void) {
   check_sizing();
+  check_clock_layout();
   check_transitions();
   puts("UI cards: real interface resize, field loss, option shrink and setup deferral passed");
   return 0;

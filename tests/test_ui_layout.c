@@ -39,6 +39,28 @@ static void check_layout(unsigned cols, unsigned rows, unsigned per_row, unsigne
   CHECK(process.posY + process.sizeY < rows, "process table must leave the shortcut row");
 }
 
+static void check_process_layout(unsigned rows, bool hide, process_field_displayed fields, unsigned process_height) {
+  const unsigned cols = 92;
+  nvtop_interface_gpu_opts options[7] = {0};
+  struct window_position devices[7], plots[MAX_CHARTS], process, setup;
+  unsigned plot_count, map[7];
+  for (unsigned i = 0; i < 7; ++i)
+    options[i].to_draw = plot_default_draw_info();
+  compute_sizes_from_layout(7, 3, 92, rows - 1, cols, options, fields, devices, &plot_count, plots, map,
+                            &process, &setup, hide);
+
+  CHECK(process.sizeY == process_height, "unexpected process rectangle height");
+  if (process_height)
+    CHECK(process.posY == 21 && process.posY + process.sizeY == rows - 1,
+          "visible processes must sit between the cards and the shortcut row");
+  for (unsigned i = 0; i < 7; ++i) {
+    CHECK(devices[i].posX == 0 && devices[i].sizeX == cols && devices[i].sizeY == 3,
+          "clock cards must retain their full width and height");
+    CHECK(devices[i].posY == i * 3 && devices[i].posY + devices[i].sizeY <= rows - 1,
+          "clock cards must stack without overlap and leave the shortcut row");
+  }
+}
+
 int main(void) {
   check_layout(312, 50, 4, 76);
   check_layout(80, 24, 2, 38);
@@ -56,6 +78,12 @@ int main(void) {
   // Re-enter narrower grids after wide layouts, as terminal resize does.
   check_layout(312, 50, 4, 76);
   check_layout(80, 24, 2, 38);
-  puts("UI layout: aligned fields, fixed gutters, wrapping and resize passed");
+  process_field_displayed fields = process_default_displayed_field();
+  check_process_layout(24, true, fields, 0);
+  check_process_layout(22, true, fields, 0);
+  check_process_layout(24, false, 0, 0);
+  check_process_layout(22, false, 0, 0);
+  check_process_layout(26, false, fields, 4);
+  puts("UI layout: aligned fields, fixed gutters, wrapping, resize and process space passed");
   return 0;
 }

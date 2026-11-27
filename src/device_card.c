@@ -56,26 +56,6 @@ struct device_cards {
   struct device_window windows[];
 };
 
-static unsigned cards_per_row(unsigned devices_count, unsigned min_card_width, unsigned cols) {
-  unsigned per_row = max(1, (cols + 2) / (min_card_width + 2));
-  unsigned stacks = max(1, (devices_count + per_row - 1) / per_row);
-  if (devices_count % stacks == 0)
-    per_row = devices_count / stacks;
-  return per_row;
-}
-
-unsigned device_cards_place(unsigned count, unsigned card_rows, unsigned min_cols, unsigned cols,
-                            bool separate_rows, struct window_position *positions) {
-  unsigned per_row = cards_per_row(count, min_cols, cols);
-  unsigned gutter_cols = 2 * (per_row - 1);
-  unsigned width = (cols - gutter_cols) / per_row;
-  unsigned margin = (cols - gutter_cols - per_row * width) / 2;
-  for (unsigned i = 0; i < count; ++i)
-    positions[i] = (struct window_position){.posX = margin + i % per_row * (width + 2),
-        .posY = i / per_row * (card_rows + separate_rows), .sizeX = width, .sizeY = card_rows};
-  return (count + per_row - 1) / per_row;
-}
-
 // Compact cards keep all eight devices visible on an 80-column terminal.
 static void alloc_device_window(unsigned start_row, unsigned start_col, unsigned cols,
                                 unsigned extra_info_rows,
@@ -109,16 +89,6 @@ static void free_device_windows(struct device_window *dwin) {
   for (unsigned i = 0; i < MAX_EXTRA_INFO_ITEMS; ++i)
     if (dwin->extra_info[i])
       delwin(dwin->extra_info[i]);
-}
-
-static unsigned device_length(unsigned devices, unsigned rows, unsigned cols, unsigned extra_rows,
-                              unsigned detailed_cols, bool force) {
-  detailed_cols = max(DETAILED_DEVICE_COLS, detailed_cols);
-  unsigned per_row = cards_per_row(devices, detailed_cols, cols);
-  unsigned stacks = (devices + per_row - 1) / per_row;
-  unsigned process_rows = 1 + max(5, min(rows / 4, devices * 3));
-  return force || (cols >= detailed_cols && stacks * (3 + extra_rows) + process_rows + 1 <= rows)
-             ? detailed_cols : COMPACT_DEVICE_COLS;
 }
 
 struct device_cards *device_cards_create(unsigned count) {
@@ -312,24 +282,21 @@ struct device_card_layout device_cards_layout(struct device_cards *cards, struct
   } else {
     detailed_cols = max(detailed_cols, options->has_gpu_info_bar ? 64 + 2 * PRIMARY_INFO_COLS : 0);
   }
-  unsigned header_cols = device_length(cards->count, rows, cols, extra_rows, detailed_cols,
-                                       options->has_gpu_info_bar);
-  bool changed = extra_rows != cards->extra_rows || header_cols != cards->layout.cols || options_changed;
-  if (devices && (!changed || defer)) {
+  struct device_card_layout fit = fit_device_cards(cards->count, 3 + extra_rows, COMPACT_DEVICE_COLS,
+      max(DETAILED_DEVICE_COLS, detailed_cols), options, rows, cols);
+  fit.changed = extra_rows != cards->extra_rows || fit.cols != cards->layout.cols ||
+                fit.too_small != cards->layout.too_small || options_changed;
+  if (devices && (!fit.changed || defer)) {
     struct device_card_layout layout = cards->layout;
     layout.changed = false;
     return layout;
   }
-  unsigned per_row = cards_per_row(cards->count, header_cols, cols);
-  unsigned stacks = (cards->count + per_row - 1) / per_row;
   cards->extra_rows = extra_rows;
   cards->detailed_cols = detailed_cols;
   // A resize does not consume options still pending behind the setup window.
   if (devices)
     cards->option_sig = option_sig;
-  cards->layout = (struct device_card_layout){.rows = 3 + extra_rows, .cols = header_cols,
-      .too_small = cols < 40 || cols < header_cols || rows < stacks * (3 + extra_rows) + 5,
-      .changed = changed};
+  cards->layout = fit;
   return cards->layout;
 }
 

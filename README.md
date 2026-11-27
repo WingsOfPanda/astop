@@ -127,6 +127,8 @@ astop --help
 | Ctrl-L | Redraw |
 | q | Quit |
 
+When the process table is hidden (`-P`) or no process columns are selected, only the shortcut row is reserved. Device cards take priority over charts and blank rows between cards. `-i` still requires enough width for the requested fields.
+
 All devices are selected on first launch. Settings live in
 `$XDG_CONFIG_HOME/astop/interface.ini`, or `~/.config/astop/interface.ini` when
 `XDG_CONFIG_HOME` is unset, independently of nvtop. Use `-c /path/to/interface.ini`
